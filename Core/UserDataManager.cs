@@ -3,9 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace CalculadoraIMC.Core;
 
-/// <summary>
-///     Handles saving and loading user data to/from JSON files
-/// </summary>
+
 public static class UserDataManager
 {
     private static readonly string DataDirectory = Path.Combine(

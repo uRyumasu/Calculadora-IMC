@@ -115,7 +115,7 @@ public static class UserSelector
 
             content.Add(Align.Center(mainPanel));
             
-            // Controls 2 lines above the bottom
+            
             content.Add(new Text("\n\n"));
             content.Add(new Markup(
                 $"[{Tema.Atual.Cabecalho.ToMarkup()}]↑↓[/] Navegar  " +

@@ -59,7 +59,7 @@ public static class Helpers
         if (altura <= 0) return 0;
         return peso / (altura * altura);
     }
-
+    
     public static void MostrarMensagem(string mensagem, Color cor)
     {
         var content = new List<IRenderable>();

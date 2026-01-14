@@ -5,9 +5,7 @@ using Spectre.Console.Rendering;
 
 namespace CalculadoraIMC.Menus;
 
-/// <summary>
-///     Main menu screen
-/// </summary>
+
 public static class MenuPrincipal
 {
     public static void Mostrar(string version)

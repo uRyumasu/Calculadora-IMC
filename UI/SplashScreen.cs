@@ -130,11 +130,7 @@ public class SplashScreen
         }
     }
 
-    /// <summary>
-    ///     Shows the splash screen with the specified image and duration
-    /// </summary>
-    /// <param name="imagePath">Path to the splash screen image (should be 1903x336 pixels)</param>
-    /// <param name="durationMs">How long to display the splash screen in milliseconds (default: 5000ms)</param>
+
     public static void Show(string imagePath, int durationMs = 5000)
     {
         GoFullscreenWithSmallFont();

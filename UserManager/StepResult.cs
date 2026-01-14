@@ -1,8 +1,5 @@
 ﻿namespace CalculadoraIMC.UserManager;
 
-/// <summary>
-///     Represents the result of a wizard step
-/// </summary>
 public class StepResult
 {
     public StepAction Action { get; set; }

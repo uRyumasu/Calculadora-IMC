@@ -385,6 +385,7 @@ public static class Tema
 
     public static Cores Atual { get; set; } = Default;
 
+    
     public static List<Cores> Todos => new()
     {
         Default, Oceano, Floresta, Noturno, PorDoSol, Neon, Matrix, Dracula,

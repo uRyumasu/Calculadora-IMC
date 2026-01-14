@@ -5,9 +5,7 @@ using Spectre.Console.Rendering;
 
 namespace CalculadoraIMC.Menus;
 
-/// <summary>
-///     Theme selection menu
-/// </summary>
+
 public static class MenuTemas
 {
     public static void Mostrar(string version)

@@ -1,8 +1,6 @@
 ﻿namespace CalculadoraIMC.Core;
 
-/// <summary>
-///     Handles conversions between metric and imperial units
-/// </summary>
+
 public static class UnitConverter
 {
     // Weight conversions

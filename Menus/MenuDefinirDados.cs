@@ -5,9 +5,7 @@ using Spectre.Console.Rendering;
 
 namespace CalculadoraIMC.Menus;
 
-/// <summary>
-///     Menu for editing basic height and weight data
-/// </summary>
+
 public static class MenuDefinirDados
 {
     public static void Mostrar(Program.Pessoa pessoa, string version)

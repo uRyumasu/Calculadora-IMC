@@ -13,10 +13,7 @@ public static class UserCreationWizard
     // ========================================================================
     // PUBLIC API
     // ========================================================================
-
-    /// <summary>
-    ///     Start the user creation wizard
-    /// </summary>
+    
     public static Program.Pessoa? CriarPessoa()
     {
         var pessoa = new Program.Pessoa();

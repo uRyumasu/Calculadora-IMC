@@ -5,9 +5,7 @@ using Spectre.Console.Rendering;
 
 namespace CalculadoraIMC.Menus;
 
-/// <summary>
-///     Detailed BMI status with categories and visual bar
-/// </summary>
+
 public static class MenuStatusIMC
 {
     public static void Mostrar(Program.Pessoa pessoa)
