@@ -138,7 +138,7 @@ public class SplashScreen
         Console.Clear();
         Console.SetBufferSize(Console.WindowWidth, Console.WindowHeight);
 
-        // Display the splash screen image
+        
         var image = new CanvasImage(imagePath)
             .MaxWidth(Console.WindowWidth);
 

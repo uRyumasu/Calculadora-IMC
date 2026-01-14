@@ -3,7 +3,6 @@ using System.Text.Json.Serialization;
 
 namespace CalculadoraIMC.Core;
 
-
 public static class UserDataManager
 {
     private static readonly string DataDirectory = Path.Combine(
@@ -24,8 +23,12 @@ public static class UserDataManager
     {
         try
         {
+            if (string.IsNullOrEmpty(pessoa.nome))
+                return false;
+
             var users = LoadAllUsers();
             var existingIndex = users.FindIndex(u =>
+                !string.IsNullOrEmpty(u.nome) && 
                 u.nome.Equals(pessoa.nome, StringComparison.OrdinalIgnoreCase));
 
             if (existingIndex >= 0)
@@ -56,10 +59,16 @@ public static class UserDataManager
                 return new List<Program.Pessoa>();
 
             var json = File.ReadAllText(UsersFilePath);
-            return JsonSerializer.Deserialize<List<Program.Pessoa>>(json, new JsonSerializerOptions
+            if (string.IsNullOrWhiteSpace(json))
+                return new List<Program.Pessoa>();
+
+            var users = JsonSerializer.Deserialize<List<Program.Pessoa>>(json, new JsonSerializerOptions
             {
                 Converters = { new JsonStringEnumConverter() }
             }) ?? new List<Program.Pessoa>();
+
+            
+            return users.Where(u => !string.IsNullOrEmpty(u.nome)).ToList();
         }
         catch
         {
@@ -69,8 +78,12 @@ public static class UserDataManager
 
     public static Program.Pessoa? LoadUser(string nome)
     {
+        if (string.IsNullOrEmpty(nome))
+            return null;
+    
         var users = LoadAllUsers();
         return users.FirstOrDefault(u =>
+            !string.IsNullOrEmpty(u.nome) && 
             u.nome.Equals(nome, StringComparison.OrdinalIgnoreCase));
     }
 
@@ -78,8 +91,12 @@ public static class UserDataManager
     {
         try
         {
+            if (string.IsNullOrEmpty(nome))
+                return false;
+
             var users = LoadAllUsers();
             var removed = users.RemoveAll(u =>
+                !string.IsNullOrEmpty(u.nome) && 
                 u.nome.Equals(nome, StringComparison.OrdinalIgnoreCase));
 
             if (removed > 0)
@@ -92,11 +109,15 @@ public static class UserDataManager
 
                 File.WriteAllText(UsersFilePath, json);
 
-                // If deleted user was current user, clear it
+                
                 if (File.Exists(CurrentUserFilePath))
                 {
                     var currentUser = File.ReadAllText(CurrentUserFilePath).Trim();
-                    if (currentUser.Equals(nome, StringComparison.OrdinalIgnoreCase)) File.Delete(CurrentUserFilePath);
+                    if (!string.IsNullOrEmpty(currentUser) && 
+                        currentUser.Equals(nome, StringComparison.OrdinalIgnoreCase))
+                    {
+                        File.Delete(CurrentUserFilePath);
+                    }
                 }
 
                 return true;
@@ -114,32 +135,11 @@ public static class UserDataManager
     {
         try
         {
-            File.WriteAllText(CurrentUserFilePath, nome);
+            if (!string.IsNullOrEmpty(nome))
+                File.WriteAllText(CurrentUserFilePath, nome);
         }
         catch
         {
         }
-    }
-
-    public static Program.Pessoa? LoadCurrentUser()
-    {
-        try
-        {
-            if (File.Exists(CurrentUserFilePath))
-            {
-                var nome = File.ReadAllText(CurrentUserFilePath).Trim();
-                return LoadUser(nome);
-            }
-        }
-        catch
-        {
-        }
-
-        return null;
-    }
-
-    public static string GetDataDirectory()
-    {
-        return DataDirectory;
     }
 }

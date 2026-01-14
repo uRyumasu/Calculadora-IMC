@@ -5,10 +5,9 @@ using Spectre.Console.Rendering;
 
 namespace CalculadoraIMC.Menus;
 
-
 public static class MenuObterIMC
 {
-    public static void Mostrar(Program.Pessoa pessoa, string version)
+    public static void Mostrar(Program.Pessoa pessoa)
     {
         var star = @"
        .
@@ -20,29 +19,55 @@ public static class MenuObterIMC
 
         var content = new List<IRenderable>();
 
+        var usarPercentil = PercentilIMC.DeveUsarPercentil(pessoa);
+        
         var imc = Helpers.CalcularIMC(pessoa.peso, pessoa.altura);
-
-        var starsCount = imc switch
+        var displayValue = imc;
+        
+        if (usarPercentil)
         {
-            < 18.5f => 2,
-            < 25.0f => 5,
-            < 30.0f => 4,
-            < 35.0f => 3,
-            < 40.0f => 2,
-            _ => 1
-        };
+            var (percentil, _) = PercentilIMC.CalcularPercentil(pessoa, imc);
+            displayValue = (float)percentil;
+        }
+
+        static int starsCount(float value, bool usarPercentil)
+        {
+            if (usarPercentil)
+            {
+                return value switch
+                {
+                    < 3 => 1,      
+                    < 15 => 2,     
+                    < 85 => 5,     
+                    < 97 => 4,     
+                    _ => 2         
+                };
+            }
+            else
+            {
+                return value switch
+                {
+                    < 18.5f => 2,
+                    < 25.0f => 5,
+                    < 30.0f => 4,
+                    < 35.0f => 3,
+                    < 40.0f => 2,
+                    _ => 1
+                };
+            }
+        }
 
         var gridInfo = new Grid();
         for (var i = 0; i < 2; i++) gridInfo.AddColumn();
         gridInfo.AddRow(
-            new FigletText($"{pessoa.peso:F1}kg").Centered().Color(Tema.Atual.Peso),
-            new FigletText($"{pessoa.altura:F2}m").Centered().Color(Tema.Atual.Altura)
+            new FigletText(UnitConverter.FormatWeight(pessoa.peso, pessoa.unidadeSistema)).Centered().Color(Tema.Atual.Peso),
+            new FigletText(UnitConverter.FormatHeight(pessoa.altura, pessoa.unidadeSistema)).Centered().Color(Tema.Atual.Altura)
         );
         content.Add(new Panel(gridInfo).RoundedBorder().BorderColor(Tema.Atual.Borda));
 
         Helpers.CentrarVert(content, 13);
 
-        content.Add(new FigletText($"{imc:f2}").Centered().Color(Helpers.IMCtoColor(imc)));
+        content.Add(new FigletText($"{displayValue:f2}").Centered().Color(Helpers.IMCtoColor(imc)));
 
         Helpers.CentrarVert(content, 13);
 
@@ -53,17 +78,17 @@ public static class MenuObterIMC
         var starColor = Helpers.IMCtoColor(imc);
         for (var i = 0; i < 5; i++)
         {
-            var color = i < starsCount ? starColor.ToMarkup() : "grey";
+            var color = i < starsCount(displayValue, usarPercentil) ? starColor.ToMarkup() : "grey";
             starRow[i] = $"[{color}]{star}[/]";
         }
 
         grid.AddRow(starRow[0], starRow[1], starRow[2], starRow[3], starRow[4]);
 
         content.Add(Align.Center(grid));
-
-        content.Add(new Markup($"\n[dim]{version}[/]"));
-
-        Helpers.Render(content, "Obter IMC");
+        
+        if (usarPercentil) Helpers.Render(content, "Obter IMC (Percentil)");
+        else Helpers.Render(content, "Obter IMC");
+        
         Console.ReadKey(true);
     }
 }

@@ -26,13 +26,13 @@ public class StepResult
     }
 }
 
-/// <summary>
-///     Actions that can be taken from a wizard step
-/// </summary>
+
+
+
 public enum StepAction
 {
-    Next, // Move to next step
-    Back, // Go back to previous step
-    Cancel, // Cancel entire wizard
-    Skip // Skip current step (for optional fields)
+    Next, 
+    Back, 
+    Cancel, 
+    Skip 
 }

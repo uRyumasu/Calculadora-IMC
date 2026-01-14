@@ -35,7 +35,7 @@ public static class Helpers
         return imc switch
         {
             < 18.5f => Tema.Atual.Magreza,
-            < 25 => Tema.Atual.Normal,
+            < 25f => Tema.Atual.Normal,
             < 30f => Tema.Atual.Sobrepeso,
             < 35f => Tema.Atual.ObesidadeI,
             < 40f => Tema.Atual.ObesidadeII,

@@ -28,6 +28,7 @@ public class Program
 
     public enum Sexo
     {
+        NaoDefinido,
         Masculino,
         Feminino
     }
@@ -38,9 +39,7 @@ public class Program
         Imperial
     }
 
-    private const string version = "1.2.5";
-
-    private static Pessoa pessoa = new();
+    private static Pessoa pessoa;
 
     private static void Main(string[] args)
     {
@@ -50,34 +49,24 @@ public class Program
         // Optional: Show splash screen
         // SplashScreen.Show("path/to/image.png");
 
-        // Load last user if exists
-        var lastUser = UserDataManager.LoadCurrentUser();
-        if (lastUser != null) pessoa = lastUser;
-
-        Tema.Atual = Tema.Default;
-
+        pessoa = MenuLogin.Pedir();
+        
         char opcao;
         do
         {
-            MenuPrincipal.Mostrar(version);
+            MenuPrincipal.Mostrar(pessoa);
             opcao = Console.ReadKey(true).KeyChar;
 
             switch (opcao)
             {
-                case '1': MenuDefinirDados.Mostrar(pessoa, version); break;
-                case '2': MenuObterIMC.Mostrar(pessoa, version); break;
-                case '3': MenuTemas.Mostrar(version); break;
-                case '4': MenuStatusIMC.Mostrar(pessoa); break;
-                case '7':
-                    var selectedUser = UserSelector.SelecionarUtilizador();
-                    if (selectedUser != null) pessoa = selectedUser;
-                    break;
-                case '8':
-                    var novaPessoa = UserCreationWizard.CriarPessoa();
-                    if (novaPessoa != null) pessoa = novaPessoa;
-                    break;
+                case '1': MenuDefinirDados.Mostrar(pessoa); break;
+                case '2': MenuObterIMC.Mostrar(pessoa); break;
+                case '3': MenuStatusIMC.Mostrar(pessoa); break;
+                case '7': MenuTemas.Mostrar(pessoa); break;
+                case '8': Tema.Atual = Tema.Default ;pessoa = MenuLogin.Pedir(); break;
+                
             }
-        } while (opcao != '5');
+        } while (opcao != '9');
 
         // Optional: Show splash screen on exit
         // SplashScreen.Show("path/to/image.png");
@@ -87,15 +76,43 @@ public class Program
     public class Pessoa
     {
         public string nome { get; set; }
-        public float peso { get; set; }
-        public float altura { get; set; }
+        public float altura { get; set; } = 1.5f;
         public DateTime dataNascimento { get; set; }
-        public Sexo sexo { get; set; } = Sexo.Masculino;
+        public Sexo sexo { get; set; } = Sexo.NaoDefinido;
         public NivelAtividade nivelAtividade { get; set; }
         public UnidadeSistema unidadeSistema { get; set; }
         public Objetivo objetivo { get; set; }
 
         public int Idade => DateTime.Now.Year - dataNascimento.Year;
         public float pesoDesejado { get; set; }
+        public string NomeTema { get; set; } = "Default";
+        
+        
+        private float _pesoInicial;
+        private float _peso;
+        private bool _pesoFoiAlterado = false;
+        public float pesoInicial 
+        { 
+            get => _pesoInicial;
+            set 
+            {
+                _pesoInicial = value;
+                // Only sync to current peso if it hasn't been modified by the user/app yet
+                if (!_pesoFoiAlterado)
+                {
+                    _peso = value;
+                }
+            }
+        }
+
+        public float peso 
+        { 
+            get => _peso;
+            set 
+            {
+                _peso = value;
+                _pesoFoiAlterado = true; // Once this is true, pesoInicial stops syncing
+            }
+        }
     }
 }

@@ -8,7 +8,7 @@ namespace CalculadoraIMC.Menus;
 
 public static class MenuTemas
 {
-    public static void Mostrar(string version)
+    public static void Mostrar(Program.Pessoa pessoa)
     {
         var running = true;
         Console.CursorVisible = false;
@@ -37,17 +37,18 @@ public static class MenuTemas
             content.Add(
                 new Markup("[dim]Use ← → para mudar de tema[/]\n[dim]Pressione ENTER para voltar[/]").Centered());
 
-            content.Add(new Markup($"[dim]{version}[/]"));
-
             Helpers.Render(content, "Configurações de Tema");
 
             var key = Console.ReadKey(true).Key;
 
             switch (key)
             {
-                case ConsoleKey.LeftArrow: CycleTheme("backwards"); break;
-                case ConsoleKey.RightArrow: CycleTheme(); break;
-                case ConsoleKey.Enter: running = false; break;
+                case ConsoleKey.LeftArrow: CycleTheme("backwards");
+                    pessoa.NomeTema = Tema.Atual.Nome; break;
+                case ConsoleKey.RightArrow: CycleTheme();
+                    pessoa.NomeTema = Tema.Atual.Nome; break;
+                case ConsoleKey.Enter: running = false;
+                    UserDataManager.SaveUser(pessoa); break;
             }
         }
     }

@@ -1,9 +1,8 @@
 ﻿namespace CalculadoraIMC.Core;
 
-
 public static class UnitConverter
 {
-    // Weight conversions
+    
     public static float KgToLbs(float kg)
     {
         return kg * 2.20462f;
@@ -14,7 +13,7 @@ public static class UnitConverter
         return lbs / 2.20462f;
     }
 
-    // Height conversions
+    
     public static (int feet, int inches) MetersToFeetInches(float meters)
     {
         var totalInches = meters * 39.3701f;
@@ -28,7 +27,7 @@ public static class UnitConverter
         return (feet * 12 + inches) * 0.0254f;
     }
 
-    // BMI calculation
+    
     public static float CalculateBMI(float weightKg, float heightMeters)
     {
         if (heightMeters <= 0) return 0;
@@ -48,7 +47,7 @@ public static class UnitConverter
         };
     }
 
-    // Formatting helpers
+    
     public static string FormatWeight(float weightKg, Program.UnidadeSistema sistema)
     {
         return sistema == Program.UnidadeSistema.Metrico
@@ -62,5 +61,13 @@ public static class UnitConverter
             return $"{heightMeters:F2}m";
         var (feet, inches) = MetersToFeetInches(heightMeters);
         return $"{feet}'{inches}\"";
+    }
+    
+    
+    public static string FormatWeightDifference(float weightKg, Program.UnidadeSistema sistema)
+    {
+        return sistema == Program.UnidadeSistema.Metrico
+            ? $"{weightKg:F1} kg"
+            : $"{KgToLbs(weightKg):F1} lbs";
     }
 }

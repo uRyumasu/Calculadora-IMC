@@ -8,7 +8,7 @@ namespace CalculadoraIMC.Menus;
 
 public static class MenuPrincipal
 {
-    public static void Mostrar(string version)
+    public static void Mostrar(Program.Pessoa pessoa)
     {
         var content = new List<IRenderable>();
 
@@ -23,16 +23,14 @@ public static class MenuPrincipal
             $"[{Tema.Atual.Texto.ToMarkup()}]" +
             "1) Definir dados\n" +
             "2) Obter IMC\n" +
-            "3) Definições\n" +
-            "4) Status IMC\n" +
-            "5) Sair\n" +
-            "7) Selecionar Utilizador\n" +
-            "8) Criar Utilizador" +
-            "[/]"
+            "3) Status IMC\n" +
+            "\n7) Definições\n" +
+            "8) Selecionar Utilizador\n" +
+            "9) Sair[/]"
         )));
 
-        Helpers.CentrarVert(content, 7);
-        content.Add(new Markup($"[dim]{version}[/]"));
+        content.Add(new Markup(new string('\n', 4)));
+        content.Add(new Markup($"[dim]{(string.IsNullOrEmpty(pessoa.nome) ? "Sem utilizador" : pessoa.nome)}[/]"));
 
         Helpers.Render(content, "Calculadora IMC");
     }

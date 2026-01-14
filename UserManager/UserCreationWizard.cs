@@ -9,13 +9,11 @@ public static class UserCreationWizard
 {
     private const int TOTAL_STEPS = 10;
     private static readonly List<IRenderable> content = new();
-
-    // ========================================================================
-    // PUBLIC API
-    // ========================================================================
     
     public static Program.Pessoa? CriarPessoa()
     {
+        Tema.Atual = Tema.Default;
+        
         var pessoa = new Program.Pessoa();
         var stepStack = new Stack<int>();
         var currentStep = 1;
@@ -46,10 +44,6 @@ public static class UserCreationWizard
         return SaveAndReturnUser(pessoa);
     }
 
-    // ========================================================================
-    // STEP ROUTING
-    // ========================================================================
-
     private static StepResult ExecuteStep(Program.Pessoa pessoa, int step)
     {
         return step switch
@@ -77,16 +71,16 @@ public static class UserCreationWizard
             case 3: pessoa.sexo = (Program.Sexo)data; break;
             case 4: pessoa.unidadeSistema = (Program.UnidadeSistema)data; break;
             case 5: pessoa.altura = (float)data; break;
-            case 6: pessoa.peso = (float)data; break;
+            case 6: pessoa.pesoInicial = (float)data; break;
             case 7: pessoa.nivelAtividade = (Program.NivelAtividade)data; break;
             case 8: pessoa.objetivo = (Program.Objetivo)data; break;
             case 9: pessoa.pesoDesejado = (float)data; break;
         }
     }
 
-    // ========================================================================
-    // STEP 1: NAME
-    // ========================================================================
+    
+    
+    
 
     private static StepResult StepName(Program.Pessoa pessoa, int step)
     {
@@ -95,17 +89,21 @@ public static class UserCreationWizard
 
         while (true)
         {
+            var existingUser = UserDataManager.LoadUser(nome);
+            var userExists = existingUser != null;
+
             var (left, right) = BuildStepPanels(pessoa, step,
                 new Markup($"[{Tema.Atual.Cabecalho.ToMarkup()}]Nome:[/]\n" +
-                           $"[{Tema.Atual.Texto}]{(string.IsNullOrEmpty(nome) ? "_" : nome + "_")}" +
-                           $"{new string(' ', Math.Max(0, MAX_LENGTH - nome.Length))}[/]")
+                           $"[{(userExists ? "red" : Tema.Atual.Texto.ToMarkup())}]{(string.IsNullOrEmpty(nome) ? "_" : nome + "_")}" +
+                           $"{new string(' ', Math.Max(0, MAX_LENGTH - nome.Length))}[/]" +
+                           (userExists ? $"\n[red]⚠ Utilizador já existe![/]" : ""))
             );
 
             ShowStep(step, left, right, "Digite o nome | ENTER=confirmar | ESC=cancelar");
 
             var key = Console.ReadKey(true);
 
-            if (key.Key == ConsoleKey.Enter && !string.IsNullOrWhiteSpace(nome))
+            if (key.Key == ConsoleKey.Enter && !string.IsNullOrWhiteSpace(nome) && !userExists) 
                 return StepResult.Next(nome);
             if (key.Key == ConsoleKey.Escape)
                 return StepResult.Cancel();
@@ -113,12 +111,14 @@ public static class UserCreationWizard
                 nome = nome[..^1];
             else if (!char.IsControl(key.KeyChar) && nome.Length < MAX_LENGTH)
                 nome += key.KeyChar;
+
+            pessoa.nome = nome; 
         }
     }
 
-    // ========================================================================
-    // STEP 2: BIRTH DATE
-    // ========================================================================
+    
+    
+    
 
     private static StepResult StepBirthDate(Program.Pessoa pessoa, int step)
     {
@@ -146,9 +146,9 @@ public static class UserCreationWizard
         }
     }
 
-    // ========================================================================
-    // STEP 3: GENDER
-    // ========================================================================
+    
+    
+    
 
     private static StepResult StepGender(Program.Pessoa pessoa, int step)
     {
@@ -161,9 +161,9 @@ public static class UserCreationWizard
         return ShowEnumSelector(pessoa, step, options, pessoa.sexo, "Sexo:");
     }
 
-    // ========================================================================
-    // STEP 4: UNIT SYSTEM
-    // ========================================================================
+    
+    
+    
 
     private static StepResult StepUnitSystem(Program.Pessoa pessoa, int step)
     {
@@ -176,9 +176,9 @@ public static class UserCreationWizard
         return ShowEnumSelector(pessoa, step, options, pessoa.unidadeSistema, "Sistema de Unidades:");
     }
 
-    // ========================================================================
-    // STEP 5: HEIGHT
-    // ========================================================================
+    
+    
+    
 
     private static StepResult StepHeight(Program.Pessoa pessoa, int step)
     {
@@ -194,7 +194,7 @@ public static class UserCreationWizard
             pessoa, step, ref altura,
             0.5f, 2.5f,
             0.1f, 0.01f,
-            altura => new FigletText($"{altura:F2}m").Color(Tema.Atual.Altura),
+            altura => new Rows(new FigletText($"{altura:F2}m").Color(Tema.Atual.Altura).Centered()).Expand(),
             "↑ +10cm  ↓ -10cm  → +1cm  ← -1cm",
             true
         );
@@ -211,11 +211,11 @@ public static class UserCreationWizard
             var lista = BuildPersonInfo(pessoa);
             var alturaMetros = UnitConverter.FeetInchesToMeters(feet, inches);
 
-            lista.Add(new FigletText($"{feet}'{inches}\"").Color(Tema.Atual.Altura).Centered());
+            lista.Add(new Rows(new FigletText($"{feet}'{inches}\"").Color(Tema.Atual.Altura).Centered()).Expand());
             lista.Add(new Markup($"[dim]({alturaMetros:F2}m)[/]").Centered());
 
-            if (pessoa.peso > 0)
-                lista.Add(BuildBMIDisplay(pessoa.peso, alturaMetros));
+            if (pessoa.pesoInicial > 0)
+                lista.Add(BuildBMIDisplay(pessoa.pesoInicial, alturaMetros));
 
             lista.Add(BuildControlsPanel("↑ +1ft  ↓ -1ft  → +1in  ← -1in"));
 
@@ -252,9 +252,9 @@ public static class UserCreationWizard
         }
     }
 
-    // ========================================================================
-    // STEP 6: WEIGHT
-    // ========================================================================
+    
+    
+    
 
     private static StepResult StepWeight(Program.Pessoa pessoa, int step)
     {
@@ -265,12 +265,12 @@ public static class UserCreationWizard
 
     private static StepResult StepWeightMetric(Program.Pessoa pessoa, int step)
     {
-        var peso = pessoa.peso > 0 ? pessoa.peso : 70f;
+        var peso = pessoa.pesoInicial > 0 ? pessoa.pesoInicial : 70f;
         return ShowNumericAdjuster(
             pessoa, step, ref peso,
             30f, 300f,
             1f, 0.1f,
-            peso => new FigletText($"{peso:F1}kg").Color(Tema.Atual.Peso),
+            peso => new Rows(new FigletText($"{peso:F1}kg").Color(Tema.Atual.Peso).Centered()).Expand(),
             "↑ +1kg  ↓ -1kg  → +100g  ← -100g",
             true,
             true
@@ -279,17 +279,17 @@ public static class UserCreationWizard
 
     private static StepResult StepWeightImperial(Program.Pessoa pessoa, int step)
     {
-        var pesoLbs = pessoa.peso > 0 ? UnitConverter.KgToLbs(pessoa.peso) : 154f;
+        var pesoLbs = pessoa.pesoInicial > 0 ? UnitConverter.KgToLbs(pessoa.pesoInicial) : 154f;
 
         while (true)
         {
             var lista = BuildPersonInfo(pessoa, true);
-            lista.RemoveAt(lista.Count - 1); // Remove last rule
+            lista.RemoveAt(lista.Count - 1);
             lista.Add(new Rule());
 
             var pesoKg = UnitConverter.LbsToKg(pesoLbs);
 
-            lista.Add(new FigletText($"{pesoLbs:F1}lb").Color(Tema.Atual.Peso).Centered());
+            lista.Add(new Rows(new FigletText($"{pesoLbs:F1}lb").Color(Tema.Atual.Peso).Centered()).Expand());
             lista.Add(new Markup($"[dim]({pesoKg:F1}kg)[/]").Centered());
 
             if (pessoa.altura > 0)
@@ -312,9 +312,9 @@ public static class UserCreationWizard
         }
     }
 
-    // ========================================================================
-    // STEP 7: ACTIVITY LEVEL (OPTIONAL)
-    // ========================================================================
+    
+    
+    
 
     private static StepResult StepActivityLevel(Program.Pessoa pessoa, int step)
     {
@@ -332,9 +332,9 @@ public static class UserCreationWizard
             "Nível de Atividade:", true, true);
     }
 
-    // ========================================================================
-    // STEP 8: GOAL
-    // ========================================================================
+    
+    
+    
 
     private static StepResult StepGoal(Program.Pessoa pessoa, int step)
     {
@@ -352,9 +352,9 @@ public static class UserCreationWizard
             "Objetivo:", includeFullInfo: true);
     }
 
-    // ========================================================================
-    // STEP 9: TARGET WEIGHT
-    // ========================================================================
+    
+    
+    
 
     private static StepResult StepTargetWeight(Program.Pessoa pessoa, int step)
     {
@@ -365,14 +365,14 @@ public static class UserCreationWizard
 
     private static StepResult StepTargetWeightMetric(Program.Pessoa pessoa, int step)
     {
-        var pesoDesejado = pessoa.pesoDesejado > 0 ? pessoa.pesoDesejado : pessoa.peso;
+        var pesoDesejado = pessoa.pesoDesejado > 0 ? pessoa.pesoDesejado : pessoa.pesoInicial;
 
         while (true)
         {
             var lista = BuildPersonInfo(pessoa, true);
             lista.Add(new Markup($"[{Tema.Atual.Cabecalho.ToMarkup()} bold]Peso Desejado:[/]"));
             lista.Add(new FigletText($"{pesoDesejado:F1}kg").Color(Tema.Atual.Peso).Centered());
-            lista.Add(BuildGoalValidation(pessoa.objetivo, pessoa.peso, pesoDesejado, pessoa.unidadeSistema));
+            lista.Add(BuildGoalValidation(pessoa.objetivo, pessoa.pesoInicial, pesoDesejado, pessoa.unidadeSistema));
             lista.Add(BuildControlsPanel("↑ +1kg  ↓ -1kg  → +100g  ← -100g"));
 
             var (left, right) = BuildStepPanels(pessoa, step, new Rows(lista));
@@ -385,7 +385,7 @@ public static class UserCreationWizard
                 case ConsoleKey.RightArrow: pesoDesejado = Math.Min(pesoDesejado + 0.1f, 300f); break;
                 case ConsoleKey.LeftArrow: pesoDesejado = Math.Max(pesoDesejado - 0.1f, 30f); break;
                 case ConsoleKey.Enter:
-                    if (ValidateGoalWeight(pessoa.objetivo, pessoa.peso, pesoDesejado))
+                    if (ValidateGoalWeight(pessoa.objetivo, pessoa.pesoInicial, pesoDesejado))
                         return StepResult.Next(pesoDesejado);
                     break;
                 case ConsoleKey.Escape: return StepResult.Back();
@@ -395,7 +395,7 @@ public static class UserCreationWizard
 
     private static StepResult StepTargetWeightImperial(Program.Pessoa pessoa, int step)
     {
-        var pesoDesejadoKg = pessoa.pesoDesejado > 0 ? pessoa.pesoDesejado : pessoa.peso;
+        var pesoDesejadoKg = pessoa.pesoDesejado > 0 ? pessoa.pesoDesejado : pessoa.pesoInicial;
         var pesoLbs = UnitConverter.KgToLbs(pesoDesejadoKg);
 
         while (true)
@@ -406,7 +406,7 @@ public static class UserCreationWizard
             lista.Add(new Markup($"[{Tema.Atual.Cabecalho.ToMarkup()} bold]Peso Desejado:[/]"));
             lista.Add(new FigletText($"{pesoLbs:F1}lb").Color(Tema.Atual.Peso).Centered());
             lista.Add(new Markup($"[dim]({pesoDesejadoKg:F1}kg)[/]").Centered());
-            lista.Add(BuildGoalValidation(pessoa.objetivo, pessoa.peso, pesoDesejadoKg, pessoa.unidadeSistema));
+            lista.Add(BuildGoalValidation(pessoa.objetivo, pessoa.pesoInicial, pesoDesejadoKg, pessoa.unidadeSistema));
             lista.Add(BuildControlsPanel("↑ +1lbs  ↓ -1lbs  → +0.5lbs  ← -0.5lbs"));
 
             var (left, right) = BuildStepPanels(pessoa, step, new Rows(lista));
@@ -419,7 +419,7 @@ public static class UserCreationWizard
                 case ConsoleKey.RightArrow: pesoLbs = Math.Min(pesoLbs + 0.5f, 661f); break;
                 case ConsoleKey.LeftArrow: pesoLbs = Math.Max(pesoLbs - 0.5f, 66f); break;
                 case ConsoleKey.Enter:
-                    if (ValidateGoalWeight(pessoa.objetivo, pessoa.peso, pesoDesejadoKg))
+                    if (ValidateGoalWeight(pessoa.objetivo, pessoa.pesoInicial, pesoDesejadoKg))
                         return StepResult.Next(pesoDesejadoKg);
                     break;
                 case ConsoleKey.Escape: return StepResult.Back();
@@ -427,9 +427,9 @@ public static class UserCreationWizard
         }
     }
 
-    // ========================================================================
-    // STEP 10: CONFIRMATION
-    // ========================================================================
+    
+    
+    
 
     private static StepResult StepConfirmation(Program.Pessoa pessoa)
     {
@@ -439,16 +439,17 @@ public static class UserCreationWizard
             Helpers.CentrarVert(content, 15);
 
             var table = BuildConfirmationTable(pessoa);
-            content.Add(new Panel(table)
-                .Header($"[bold {Tema.Atual.Cabecalho.ToMarkup()}]Confirmação de Dados[/]")
-                .RoundedBorder()
-                .BorderColor(Tema.Atual.Borda));
+            List<IRenderable> conteudoConfirmar = new List<IRenderable>
+            {
+                Align.Center(new Panel(table)
+                    .Header($"[bold {Tema.Atual.Cabecalho.ToMarkup()}]Confirmação de Dados[/]")
+                    .RoundedBorder()
+                    .BorderColor(Tema.Atual.Borda)),
+                new Markup($"\n{BuildProgressBar(TOTAL_STEPS)}").Centered(),
+                new Markup($"\n[{Tema.Atual.Normal.ToMarkup()}]ENTER[/] = Confirmar e guardar | [dim]ESC = Voltar e editar[/]").Centered(),
+            };
 
-            content.Add(new Markup($"\n{BuildProgressBar(TOTAL_STEPS)}").Centered());
-            content.Add(
-                new Markup(
-                        $"\n[{Tema.Atual.Normal.ToMarkup()}]ENTER[/] = Confirmar e guardar | [dim]ESC = Voltar e editar[/]")
-                    .Centered());
+            content.Add(new Rows(conteudoConfirmar));
 
             Helpers.Render(content, "Criar Pessoa - Confirmação");
 
@@ -460,9 +461,9 @@ public static class UserCreationWizard
         }
     }
 
-    // ========================================================================
-    // HELPER METHODS - UI BUILDING
-    // ========================================================================
+    
+    
+    
 
     private static List<IRenderable> BuildPersonInfo(Program.Pessoa pessoa, bool includeFullInfo = false)
     {
@@ -488,14 +489,14 @@ public static class UserCreationWizard
                 lista.Add(new Markup(
                     $"[{Tema.Atual.Cabecalho.ToMarkup()}]Altura:[/] [{Tema.Atual.Altura}]{UnitConverter.FormatHeight(pessoa.altura, pessoa.unidadeSistema)}[/]"));
 
-            if (pessoa.peso > 0)
+            if (pessoa.pesoInicial > 0)
             {
                 lista.Add(new Markup(
-                    $"[{Tema.Atual.Cabecalho.ToMarkup()}]Peso:[/] [{Tema.Atual.Peso}]{UnitConverter.FormatWeight(pessoa.peso, pessoa.unidadeSistema)}[/]"));
+                    $"[{Tema.Atual.Cabecalho.ToMarkup()}]Peso:[/] [{Tema.Atual.Peso}]{UnitConverter.FormatWeight(pessoa.pesoInicial, pessoa.unidadeSistema)}[/]"));
 
                 if (pessoa.altura > 0)
                 {
-                    var bmi = UnitConverter.CalculateBMI(pessoa.peso, pessoa.altura);
+                    var bmi = UnitConverter.CalculateBMI(pessoa.pesoInicial, pessoa.altura);
                     var bmiColor = Helpers.IMCtoColor(bmi);
                     lista.Add(new Markup(
                         $"[{Tema.Atual.Cabecalho.ToMarkup()}]IMC:[/] [{bmiColor.ToMarkup()}]{bmi:F1}[/] [dim]({UnitConverter.GetBMICategory(bmi)})[/]"));
@@ -539,11 +540,11 @@ public static class UserCreationWizard
         rightContent.Add(new Markup(
             $"\n[{Tema.Atual.Altura} bold]Altura:[/] {(pessoa.altura > 0 ? UnitConverter.FormatHeight(pessoa.altura, pessoa.unidadeSistema) : "??")}"));
         rightContent.Add(new Markup(
-            $"[{Tema.Atual.Peso} bold]Peso:[/] {(pessoa.peso > 0 ? UnitConverter.FormatWeight(pessoa.peso, pessoa.unidadeSistema) : "??")}"));
+            $"[{Tema.Atual.Peso} bold]Peso:[/] {(pessoa.pesoInicial > 0 ? UnitConverter.FormatWeight(pessoa.pesoInicial, pessoa.unidadeSistema) : "??")}"));
 
-        if (pessoa.peso > 0 && pessoa.altura > 0)
+        if (pessoa.pesoInicial > 0 && pessoa.altura > 0)
         {
-            var bmi = UnitConverter.CalculateBMI(pessoa.peso, pessoa.altura);
+            var bmi = UnitConverter.CalculateBMI(pessoa.pesoInicial, pessoa.altura);
             var bmiColor = Helpers.IMCtoColor(bmi);
             rightContent.Add(new Markup(
                 $"[{Tema.Atual.Peso} bold]IMC:[/] [{bmiColor.ToMarkup()}]{bmi:F1}[/] [dim]{UnitConverter.GetBMICategory(bmi)}[/]"));
@@ -619,6 +620,7 @@ public static class UserCreationWizard
     private static Table BuildConfirmationTable(Program.Pessoa pessoa)
     {
         var table = new Table()
+            .Centered()
             .RoundedBorder()
             .BorderColor(Tema.Atual.Borda)
             .AddColumn(new TableColumn("[bold]Campo[/]").LeftAligned())
@@ -633,9 +635,9 @@ public static class UserCreationWizard
         table.AddRow("Sistema", $"[{Tema.Atual.Texto}]{pessoa.unidadeSistema}[/]");
         table.AddRow("Altura",
             $"[{Tema.Atual.Altura}]{UnitConverter.FormatHeight(pessoa.altura, pessoa.unidadeSistema)}[/]");
-        table.AddRow("Peso", $"[{Tema.Atual.Peso}]{UnitConverter.FormatWeight(pessoa.peso, pessoa.unidadeSistema)}[/]");
+        table.AddRow("Peso", $"[{Tema.Atual.Peso}]{UnitConverter.FormatWeight(pessoa.pesoInicial, pessoa.unidadeSistema)}[/]");
 
-        var bmi = UnitConverter.CalculateBMI(pessoa.peso, pessoa.altura);
+        var bmi = UnitConverter.CalculateBMI(pessoa.pesoInicial, pessoa.altura);
         var bmiColor = Helpers.IMCtoColor(bmi);
         table.AddRow("IMC", $"[{bmiColor.ToMarkup()}]{bmi:F1} ({UnitConverter.GetBMICategory(bmi)})[/]");
 
@@ -669,9 +671,9 @@ public static class UserCreationWizard
         Helpers.Render(content, $"Criar Pessoa - Passo {step}/{TOTAL_STEPS}");
     }
 
-    // ========================================================================
-    // GENERIC SELECTOR - Eliminates duplication across enum steps
-    // ========================================================================
+    
+    
+    
 
     private static StepResult ShowEnumSelector<T>(
         Program.Pessoa pessoa,
@@ -728,9 +730,9 @@ public static class UserCreationWizard
         }
     }
 
-    // ========================================================================
-    // GENERIC NUMERIC ADJUSTER - Eliminates duplication in height/weight
-    // ========================================================================
+    
+    
+    
 
     private static StepResult ShowNumericAdjuster(
         Program.Pessoa pessoa,
@@ -758,9 +760,9 @@ public static class UserCreationWizard
 
             lista.Add(format(currentValue));
 
-            if (showBMI && pessoa.peso > 0 && pessoa.altura > 0)
+            if (showBMI && pessoa.pesoInicial > 0 && pessoa.altura > 0)
             {
-                var weight = includeFullInfo ? currentValue : pessoa.peso;
+                var weight = includeFullInfo ? currentValue : pessoa.pesoInicial;
                 var height = includeFullInfo ? pessoa.altura : currentValue;
                 lista.Add(BuildBMIDisplay(weight, height));
             }
@@ -793,9 +795,9 @@ public static class UserCreationWizard
         }
     }
 
-    // ========================================================================
-    // DATA PERSISTENCE
-    // ========================================================================
+    
+    
+    
 
     private static Program.Pessoa? SaveAndReturnUser(Program.Pessoa pessoa)
     {
@@ -812,34 +814,13 @@ public static class UserCreationWizard
         return pessoa;
     }
 
-    // ========================================================================
-    // PUBLIC UTILITY - Show User Details (used by other menus)
-    // ========================================================================
-
-    public static void MostrarDetalhesUtilizador(Program.Pessoa pessoa)
-    {
-        content.Clear();
-        Helpers.CentrarVert(content, 10);
-
-        var table = BuildConfirmationTable(pessoa);
-        content.Add(new Panel(table)
-            .Header($"[bold {Tema.Atual.Cabecalho.ToMarkup()}]Detalhes do Utilizador[/]")
-            .RoundedBorder()
-            .BorderColor(Tema.Atual.Borda));
-
-        content.Add(new Markup("\n[dim]Pressione qualquer tecla para voltar[/]").Centered());
-
-        Helpers.Render(content, "Detalhes do Utilizador");
-        Console.ReadKey(true);
-    }
-
-    // ========================================================================
-    // DATE INPUT HELPER CLASS
-    // ========================================================================
+    
+    
+    
 
     private class DateInput
     {
-        private int currentField; // 0=day, 1=month, 2=year
+        private int currentField; 
         private string day = "";
         private string month = "";
         private string year = "";

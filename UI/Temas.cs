@@ -384,12 +384,21 @@ public static class Tema
     };
 
     public static Cores Atual { get; set; } = Default;
-
     
+    private static readonly Dictionary<string, Cores> _mapaTemas = 
+        Todos.ToDictionary(t => t.Nome, t => t);
+
     public static List<Cores> Todos => new()
     {
         Default, Oceano, Floresta, Noturno, PorDoSol, Neon, Matrix, Dracula,
         Fogo, Gelo, Outono, Cereja, Cibernetico, Arcoiris, Vintage, Lavanda,
         Deserto, Menta, Vampiro, Tropical
     };
+    
+    public static Cores ObterPorNome(string nome)
+    {
+        if (string.IsNullOrEmpty(nome)) return Default;
+        
+        return _mapaTemas.TryGetValue(nome, out var tema) ? tema : Default;
+    }
 }
