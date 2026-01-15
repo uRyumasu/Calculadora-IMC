@@ -124,7 +124,6 @@ CalculadoraIMC/
 │   ├── Constantes.cs           # Constantes do sistema
 │   ├── Dicas.cs                # Sistema de dicas aleatórias
 │   ├── DateInput.cs            # Input de data com validação
-│   ├── HelpersUI.cs            # Funções auxiliares de UI
 │   └── UserDataManager.cs      # Persistência de dados
 ├── Menus/
 │   ├── MenuPrincipal.cs        # Menu principal
@@ -134,8 +133,10 @@ CalculadoraIMC/
 │   ├── MenuStatusIMC.cs        # Dashboard completo
 │   └── MenuTemas.cs            # Seleção de temas
 ├── UI/
+│   ├── HelpersUI.cs            # Funções auxiliares de UI
 │   └── Temas.cs                # Sistema de temas e cores
 ├── UserManager/
+│   ├── StepResult.cs
 │   ├── UserCreationWizard.cs   # Wizard de criação de utilizador
 │   └── UserSelector.cs         # Seleção de utilizador
 └── Program.cs                  # Ponto de entrada
