@@ -66,7 +66,7 @@ Uma calculadora de Índice de Massa Corporal (IMC) moderna e completa desenvolvi
 - Windows, macOS ou Linux
 
 ### Download
-Baixe a última versão na [página de releases](https://github.com/seu-usuario/CalculadoraIMC/releases).
+Baixe a última versão na [página de releases](https://github.com/uRyumasu/Calculadora-IMC/releases).
 
 ### Compilar do Código-Fonte
 ```bash
@@ -210,7 +210,7 @@ Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para ma
 
 ## 📧 Contato
 
-Para dúvidas ou sugestões, abra uma [issue](https://github.com/seu-usuario/CalculadoraIMC/issues).
+Para dúvidas ou sugestões, abra uma [issue](https://github.com/uRyumasu/Calculadora-IMC/issues).
 
 ---
 
