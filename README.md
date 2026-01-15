@@ -2,7 +2,7 @@
 
 Uma calculadora de Índice de Massa Corporal (IMC) moderna e completa desenvolvida em C# com interface de terminal interativa usando Spectre.Console.
 
-![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet)
+![.NET](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet)
 ![C#](https://img.shields.io/badge/C%23-12.0-239120?logo=csharp)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
@@ -62,7 +62,7 @@ Uma calculadora de Índice de Massa Corporal (IMC) moderna e completa desenvolvi
 ## 🚀 Instalação
 
 ### Requisitos
-- [.NET 8.0 SDK](https://dotnet.microsoft.com/download) ou superior
+- [.NET 10.0 SDK](https://dotnet.microsoft.com/download) ou superior
 - Windows, macOS ou Linux
 
 ### Download
@@ -163,7 +163,7 @@ Usa percentis OMS com método LMS:
 
 ## 🔧 Tecnologias Utilizadas
 
-- **[.NET 8.0](https://dotnet.microsoft.com/)** - Framework principal
+- **[.NET 10.0](https://dotnet.microsoft.com/)** - Framework principal
 - **[Spectre.Console](https://spectreconsole.net/)** - Interface de terminal rica
 - **System.Text.Json** - Serialização de dados
 - **HttpClient** - Download de recursos
