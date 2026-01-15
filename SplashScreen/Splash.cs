@@ -22,10 +22,11 @@ public class Splash
             // Força execução no cmd.exe clássico
             var startInfo = new ProcessStartInfo
             {
-                FileName = "cmd.exe",
-                Arguments = $"/C \"{splashPath}\"",
-                UseShellExecute = true,
-                CreateNoWindow = false,
+                FileName = "conhost.exe",
+                Arguments = $"\"{splashPath}\"", 
+                UseShellExecute = true, 
+                CreateNoWindow = false, 
+    
                 WindowStyle = ProcessWindowStyle.Normal
             };
             
