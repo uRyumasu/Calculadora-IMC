@@ -5,21 +5,21 @@ using Spectre.Console.Rendering;
 
 namespace CalculadoraIMC.Menus;
 
-
 public static class MenuPrincipal
 {
+    // Mostra o menu principal da aplicação
     public static void Mostrar(Program.Pessoa pessoa)
     {
-        var content = new List<IRenderable>();
+        var conteudo = new List<IRenderable>();
 
-        Helpers.CentrarVert(content, 12);
-        content.Add(new FigletText("Calculadora IMC")
+        HelpersUI.CentrarVertical(conteudo, Constantes.OFFSET_VERTICAL_GRANDE);
+        conteudo.Add(new FigletText("Calculadora IMC")
             .Color(Tema.Atual.Titulo)
             .Centered());
 
-        Helpers.CentrarVert(content, 10);
+        HelpersUI.CentrarVertical(conteudo, Constantes.OFFSET_VERTICAL_MEDIO);
 
-        content.Add(Align.Center(new Markup(
+        conteudo.Add(Align.Center(new Markup(
             $"[{Tema.Atual.Texto.ToMarkup()}]" +
             "1) Definir dados\n" +
             "2) Obter IMC\n" +
@@ -29,9 +29,9 @@ public static class MenuPrincipal
             "9) Sair[/]"
         )));
 
-        content.Add(new Markup(new string('\n', 4)));
-        content.Add(new Markup($"[dim]{(string.IsNullOrEmpty(pessoa.nome) ? "Sem utilizador" : pessoa.nome)}[/]"));
+        conteudo.Add(new Markup(new string('\n', 4)));
+        conteudo.Add(new Markup($"[dim]{(string.IsNullOrEmpty(pessoa.Nome) ? "Sem utilizador" : pessoa.Nome)}[/]"));
 
-        Helpers.Render(content, "Calculadora IMC");
+        HelpersUI.Render(conteudo, "Calculadora IMC");
     }
 }

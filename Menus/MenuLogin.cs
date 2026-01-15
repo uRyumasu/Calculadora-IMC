@@ -8,18 +8,19 @@ namespace CalculadoraIMC.Menus;
 
 public class MenuLogin
 {
+    // Mostra o menu de login
     public static void Mostrar()
     {
-        var content = new List<IRenderable>();
+        var conteudo = new List<IRenderable>();
 
-        Helpers.CentrarVert(content, 12);
-        content.Add(new FigletText("Calculadora IMC")
+        HelpersUI.CentrarVertical(conteudo, Constantes.OFFSET_VERTICAL_GRANDE);
+        conteudo.Add(new FigletText("Calculadora IMC")
             .Color(Tema.Atual.Titulo)
             .Centered());
 
-        Helpers.CentrarVert(content, 10);
+        HelpersUI.CentrarVertical(conteudo, Constantes.OFFSET_VERTICAL_MEDIO);
         
-        content.Add(Align.Center(new Markup(
+        conteudo.Add(Align.Center(new Markup(
             $"[{Tema.Atual.Texto.ToMarkup()}]" +
             "1) Criar Utilizador\n" +
             "2) Selecionar Utilizador\n" +
@@ -28,46 +29,50 @@ public class MenuLogin
             "[/]"
         )));
 
-        Helpers.Render(content, "Calculadora IMC");
+        HelpersUI.Render(conteudo, "Calculadora IMC");
     }
 
+    // Pede ao utilizador para escolher uma opção
     public static Program.Pessoa Pedir()
     {
-        char opcaoLogin;
-        var escolhaLogin = true;
-        
+        char opcao;
+        bool emEscolha = true;
         Program.Pessoa? pessoa = new Program.Pessoa();
         
         do
         {
             Mostrar();
-            opcaoLogin = Console.ReadKey(true).KeyChar;
+            opcao = Console.ReadKey(true).KeyChar;
             
-            switch (opcaoLogin)
+            switch (opcao)
             {
                 case '1':
                     pessoa = UserCreationWizard.CriarPessoa();
                     if (pessoa == null) continue;
                     Tema.Atual = Tema.ObterPorNome(pessoa.NomeTema);
-                    escolhaLogin = false;
+                    emEscolha = false;
                     break;
+
                 case '2':
                     pessoa = UserSelector.SelecionarUtilizador();
                     if (pessoa == null) continue;
                     Tema.Atual = Tema.ObterPorNome(pessoa.NomeTema);
-                    escolhaLogin = false;
+                    emEscolha = false;
                     break;
+
                 case '3':
                     pessoa = new Program.Pessoa();
-                    pessoa.peso = 60;
-                    escolhaLogin = false;
+                    pessoa.Peso = 60;
+                    emEscolha = false;
                     break;
+
                 case '4':
-                    escolhaLogin = false;
+                    emEscolha = false;
+                    Splash.ExecutarSplashNoCmd();
                     Environment.Exit(0);
                     break;
             }
-        } while (escolhaLogin);
+        } while (emEscolha);
 
         return pessoa;
     }

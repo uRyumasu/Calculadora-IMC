@@ -5,6 +5,8 @@ namespace CalculadoraIMC.UI;
 
 public class SplashScreen
 {
+    // CODIGO GERADO POR IA
+    // Usa API's avançadas do Windows por isso não vou comentar
     private const int STD_OUTPUT_HANDLE = -11;
     private const int SW_MAXIMIZE = 3;
     private const int SW_RESTORE = 9;
@@ -130,24 +132,20 @@ public class SplashScreen
         }
     }
 
-
-    public static void Show(string imagePath, int durationMs = 5000)
+    /*
+    static void Main()
     {
         GoFullscreenWithSmallFont();
-
         Console.Clear();
         Console.SetBufferSize(Console.WindowWidth, Console.WindowHeight);
-
-        
-        var image = new CanvasImage(imagePath)
+        var image = new CanvasImage("splash.png")
             .MaxWidth(Console.WindowWidth);
-
         AnsiConsole.Write(image);
+        Thread.Sleep(5000);
 
-        Thread.Sleep(durationMs);
-
-        RestoreEverything();
+        Environment.Exit(0);
     }
+    */ // COMPILAR SEPARADO
 
     [StructLayout(LayoutKind.Sequential)]
     private struct RECT

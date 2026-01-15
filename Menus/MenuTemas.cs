@@ -5,66 +5,77 @@ using Spectre.Console.Rendering;
 
 namespace CalculadoraIMC.Menus;
 
-
 public static class MenuTemas
 {
+    // Mostra o menu de seleção de temas
     public static void Mostrar(Program.Pessoa pessoa)
     {
-        var running = true;
+        bool emExecucao = true;
         Console.CursorVisible = false;
 
-        while (running)
+        while (emExecucao)
         {
-            var content = new List<IRenderable>();
+            var conteudo = new List<IRenderable>();
 
-            Helpers.CentrarVert(content, 10);
-            content.Add(new FigletText("TEMAS")
+            HelpersUI.CentrarVertical(conteudo, Constantes.OFFSET_VERTICAL_MEDIO);
+            conteudo.Add(new FigletText("TEMAS")
                 .Color(Tema.Atual.Titulo)
                 .Centered());
 
-            Helpers.CentrarVert(content);
+            HelpersUI.CentrarVertical(conteudo);
 
-            var linha1 = new Columns(
+            // Linha com setas e nome do tema atual
+            var linha = new Columns(
                 new Markup($"[{Tema.Atual.Peso.ToMarkup()}]◄[/]").LeftJustified(),
                 new Markup($"[{Tema.Atual.Cabecalho.ToMarkup()} bold]{Tema.Atual.Nome}[/]").Centered(),
                 new Markup($"[{Tema.Atual.Altura.ToMarkup()}]►[/]").RightJustified()
             ).Expand();
 
-            content.Add(linha1);
+            conteudo.Add(linha);
+            HelpersUI.CentrarVertical(conteudo, Constantes.OFFSET_VERTICAL_MEDIO);
 
-            Helpers.CentrarVert(content, 10);
+            conteudo.Add(new Markup(
+                "[dim]Use ← → para mudar de tema[/]\n" +
+                "[dim]Pressione ENTER para voltar[/]"
+            ).Centered());
 
-            content.Add(
-                new Markup("[dim]Use ← → para mudar de tema[/]\n[dim]Pressione ENTER para voltar[/]").Centered());
+            HelpersUI.Render(conteudo, "Configurações de Tema");
 
-            Helpers.Render(content, "Configurações de Tema");
+            var tecla = Console.ReadKey(true).Key;
 
-            var key = Console.ReadKey(true).Key;
-
-            switch (key)
+            switch (tecla)
             {
-                case ConsoleKey.LeftArrow: CycleTheme("backwards");
-                    pessoa.NomeTema = Tema.Atual.Nome; break;
-                case ConsoleKey.RightArrow: CycleTheme();
-                    pessoa.NomeTema = Tema.Atual.Nome; break;
-                case ConsoleKey.Enter: running = false;
-                    UserDataManager.SaveUser(pessoa); break;
+                case ConsoleKey.LeftArrow:
+                    CiclarTema(false);
+                    pessoa.NomeTema = Tema.Atual.Nome;
+                    break;
+
+                case ConsoleKey.RightArrow:
+                    CiclarTema(true);
+                    pessoa.NomeTema = Tema.Atual.Nome;
+                    break;
+
+                case ConsoleKey.Enter:
+                    emExecucao = false;
+                    UserDataManager.SaveUser(pessoa);
+                    break;
             }
         }
     }
 
-    private static void CycleTheme(string direction = "forwards")
+    // Cicla entre os temas disponíveis
+    private static void CiclarTema(bool avancar)
     {
-        var indiceAtual = Tema.Todos.FindIndex(t => t.Nome == Tema.Atual.Nome);
+        int indiceAtual = Tema.Todos.FindIndex(t => t.Nome == Tema.Atual.Nome);
 
-        if (direction == "forwards")
+        if (avancar)
         {
-            var proximoIndice = (indiceAtual + 1) % Tema.Todos.Count;
+            int proximoIndice = (indiceAtual + 1) % Tema.Todos.Count;
             Tema.Atual = Tema.Todos[proximoIndice];
         }
         else
         {
-            var indiceAnterior = (indiceAtual - 1 + Tema.Todos.Count) % Tema.Todos.Count;
+            int indiceAnterior = (indiceAtual - 1 + Tema.Todos.Count) % Tema.Todos.Count;
             Tema.Atual = Tema.Todos[indiceAnterior];
         }
     }

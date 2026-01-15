@@ -5,35 +5,47 @@ using Spectre.Console.Rendering;
 
 namespace CalculadoraIMC.UserManager;
 
+// Formulario para criar um novo utilizador passo a passo
 public static class UserCreationWizard
 {
-    private const int TOTAL_STEPS = 10;
-    private static readonly List<IRenderable> content = new();
+    private const int TOTAL_PASSOS = 10;
+    private static readonly List<IRenderable> conteudo = new();
     
+    // Cria uma nova pessoa através de um formulario interativo
     public static Program.Pessoa? CriarPessoa()
     {
         Tema.Atual = Tema.Default;
-        
+    
         var pessoa = new Program.Pessoa();
-        var stepStack = new Stack<int>();
-        var currentStep = 1;
+        var passoAtual = 1;
 
-        while (currentStep <= TOTAL_STEPS)
+        while (passoAtual <= TOTAL_PASSOS)
         {
-            var result = ExecuteStep(pessoa, currentStep);
+            var resultado = ExecutarPasso(pessoa, passoAtual);
 
-            switch (result.Action)
+            switch (resultado.Action)
             {
                 case StepAction.Next:
-                case StepAction.Skip:
-                    if (result.Data != null)
-                        ApplyStepData(pessoa, currentStep, result.Data);
-                    stepStack.Push(currentStep);
-                    currentStep++;
+                    // Aplica os dados do passo atual
+                    if (resultado.Data != null)
+                        AplicarDadosPasso(pessoa, passoAtual, resultado.Data);
+                
+                    // Avança para próximo passo
+                    passoAtual++;
                     break;
 
-                case StepAction.Back when stepStack.Count > 0:
-                    currentStep = stepStack.Pop();
+                case StepAction.Back:
+                    // Volta ao passo anterior (com validação!)
+                    if (passoAtual > 1)
+                    {
+                        passoAtual--;
+                    }
+                    else
+                    {
+                        // Já está no primeiro passo, confirma cancelamento
+                        if (HelpersUI.ConfirmarAcao("Cancelar criação de utilizador?"))
+                            return null;
+                    }
                     break;
 
                 case StepAction.Cancel:
@@ -41,284 +53,279 @@ public static class UserCreationWizard
             }
         }
 
-        return SaveAndReturnUser(pessoa);
+        return GuardarERetornarUtilizador(pessoa);
     }
 
-    private static StepResult ExecuteStep(Program.Pessoa pessoa, int step)
+    // Executa o passo correspondente do formulario
+    private static StepResult ExecutarPasso(Program.Pessoa pessoa, int passo)
     {
-        return step switch
+        return passo switch
         {
-            1 => StepName(pessoa, step),
-            2 => StepBirthDate(pessoa, step),
-            3 => StepGender(pessoa, step),
-            4 => StepUnitSystem(pessoa, step),
-            5 => StepHeight(pessoa, step),
-            6 => StepWeight(pessoa, step),
-            7 => StepActivityLevel(pessoa, step),
-            8 => StepGoal(pessoa, step),
-            9 => StepTargetWeight(pessoa, step),
-            10 => StepConfirmation(pessoa),
+            1 => PassoNome(pessoa, passo),
+            2 => PassoDataNascimento(pessoa, passo),
+            3 => PassoSexo(pessoa, passo),
+            4 => PassoSistemaUnidades(pessoa, passo),
+            5 => PassoAltura(pessoa, passo),
+            6 => PassoPeso(pessoa, passo),
+            7 => PassoNivelAtividade(pessoa, passo),
+            8 => PassoObjetivo(pessoa, passo),
+            9 => PassoPesoDesejado(pessoa, passo),
+            10 => PassoConfirmacao(pessoa),
             _ => StepResult.Cancel()
         };
     }
 
-    private static void ApplyStepData(Program.Pessoa pessoa, int step, object data)
+    // Aplica os dados recolhidos em cada passo à pessoa
+    private static void AplicarDadosPasso(Program.Pessoa pessoa, int passo, object dados)
     {
-        switch (step)
+        switch (passo)
         {
-            case 1: pessoa.nome = (string)data; break;
-            case 2: pessoa.dataNascimento = (DateTime)data; break;
-            case 3: pessoa.sexo = (Program.Sexo)data; break;
-            case 4: pessoa.unidadeSistema = (Program.UnidadeSistema)data; break;
-            case 5: pessoa.altura = (float)data; break;
-            case 6: pessoa.pesoInicial = (float)data; break;
-            case 7: pessoa.nivelAtividade = (Program.NivelAtividade)data; break;
-            case 8: pessoa.objetivo = (Program.Objetivo)data; break;
-            case 9: pessoa.pesoDesejado = (float)data; break;
+            case 1: pessoa.Nome = (string)dados; break;
+            case 2: pessoa.DataNascimento = (DateTime)dados; break;
+            case 3: pessoa.Sexo = (Program.Sexo)dados; break;
+            case 4: pessoa.UnidadeSistema = (Program.UnidadeSistema)dados; break;
+            case 5: pessoa.Altura = (float)dados; break;
+            case 6: pessoa.PesoInicial = pessoa.Peso = (float)dados; break;
+            case 7: pessoa.NivelAtividade = (Program.NivelAtividade)dados; break;
+            case 8: pessoa.Objetivo = (Program.Objetivo)dados; break;
+            case 9: pessoa.PesoDesejado = (float)dados; break;
         }
     }
 
-    
-    
-    
-
-    private static StepResult StepName(Program.Pessoa pessoa, int step)
+    // Passo 1: Pedir o nome do utilizador
+    private static StepResult PassoNome(Program.Pessoa pessoa, int passo)
     {
-        var nome = pessoa.nome ?? "";
-        const int MAX_LENGTH = 20;
+        var nome = pessoa.Nome ?? "";
 
         while (true)
         {
-            var existingUser = UserDataManager.LoadUser(nome);
-            var userExists = existingUser != null;
+            var utilizadorExiste = UserDataManager.LoadUser(nome) != null;
 
-            var (left, right) = BuildStepPanels(pessoa, step,
+            var (esquerda, direita) = CriarPaineisPasso(pessoa, passo,
                 new Markup($"[{Tema.Atual.Cabecalho.ToMarkup()}]Nome:[/]\n" +
-                           $"[{(userExists ? "red" : Tema.Atual.Texto.ToMarkup())}]{(string.IsNullOrEmpty(nome) ? "_" : nome + "_")}" +
-                           $"{new string(' ', Math.Max(0, MAX_LENGTH - nome.Length))}[/]" +
-                           (userExists ? $"\n[red]⚠ Utilizador já existe![/]" : ""))
+                           $"[{(utilizadorExiste ? "red" : Tema.Atual.Texto.ToMarkup())}]{(string.IsNullOrEmpty(nome) ? "_" : nome + "_")}" +
+                           $"{new string(' ', Math.Max(0, Constantes.TAMANHO_NOME_MAXIMO - nome.Length))}[/]" +
+                           (utilizadorExiste ? $"\n[red]⚠ Utilizador já existe![/]" : ""))
             );
 
-            ShowStep(step, left, right, "Digite o nome | ENTER=confirmar | ESC=cancelar");
+            MostrarPasso(passo, esquerda, direita, "Digite o nome | ENTER=confirmar | ESC=cancelar");
 
-            var key = Console.ReadKey(true);
+            var tecla = Console.ReadKey(true);
 
-            if (key.Key == ConsoleKey.Enter && !string.IsNullOrWhiteSpace(nome) && !userExists) 
+            if (tecla.Key == ConsoleKey.Enter && !string.IsNullOrWhiteSpace(nome) && !utilizadorExiste) 
                 return StepResult.Next(nome);
-            if (key.Key == ConsoleKey.Escape)
+            if (tecla.Key == ConsoleKey.Escape)
                 return StepResult.Cancel();
-            if (key.Key == ConsoleKey.Backspace && nome.Length > 0)
+            if (tecla.Key == ConsoleKey.Backspace && nome.Length > 0)
                 nome = nome[..^1];
-            else if (!char.IsControl(key.KeyChar) && nome.Length < MAX_LENGTH)
-                nome += key.KeyChar;
+            else if (!char.IsControl(tecla.KeyChar) && nome.Length < Constantes.TAMANHO_NOME_MAXIMO)
+                nome += tecla.KeyChar;
 
-            pessoa.nome = nome; 
+            pessoa.Nome = nome; 
         }
     }
 
-    
-    
-    
-
-    private static StepResult StepBirthDate(Program.Pessoa pessoa, int step)
+    // Passo 2: Pedir a data de nascimento
+    private static StepResult PassoDataNascimento(Program.Pessoa pessoa, int passo)
     {
-        var date = new DateInput();
+        var data = new DateInput();
 
         while (true)
         {
-            var lista = BuildPersonInfo(pessoa);
+            var lista = ConstruirInfoPessoa(pessoa);
             lista.Add(new Markup($"[{Tema.Atual.Cabecalho.ToMarkup()}]Data de Nascimento:[/]\n" +
-                                 $"[{Tema.Atual.Texto}]{date.GetFormattedDisplay()}_[/]"));
+                                 $"[{Tema.Atual.Texto}]{data.ObterExibicaoFormatada()}_[/]"));
 
-            var (left, right) = BuildStepPanels(pessoa, step, new Rows(lista));
-            ShowStep(step, left, right, "Digite a data | ENTER=confirmar | BACKSPACE=apagar | ESC=voltar");
+            var (esquerda, direita) = CriarPaineisPasso(pessoa, passo, new Rows(lista));
+            MostrarPasso(passo, esquerda, direita, "Digite a data | ENTER=confirmar | BACKSPACE=apagar | ESC=voltar");
 
-            var key = Console.ReadKey(true);
+            var tecla = Console.ReadKey(true);
 
-            if (key.Key == ConsoleKey.Enter && date.IsComplete())
-                return StepResult.Next(date.ToDateTime());
-            if (key.Key == ConsoleKey.Escape)
+            if (tecla.Key == ConsoleKey.Enter && data.EstaCompleta())
+                return StepResult.Next(data.ParaDateTime());
+            if (tecla.Key == ConsoleKey.Escape)
                 return StepResult.Back();
-            if (key.Key == ConsoleKey.Backspace)
-                date.Backspace();
-            else if (char.IsDigit(key.KeyChar))
-                date.AddDigit(key.KeyChar);
+            if (tecla.Key == ConsoleKey.Backspace)
+                data.ApagarDigito();
+            else if (char.IsDigit(tecla.KeyChar))
+                data.AdicionarDigito(tecla.KeyChar);
         }
     }
 
-    
-    
-    
-
-    private static StepResult StepGender(Program.Pessoa pessoa, int step)
+    // Passo 3: Pedir o sexo
+    private static StepResult PassoSexo(Program.Pessoa pessoa, int passo)
     {
-        var options = new Dictionary<Program.Sexo, (string display, Color color)>
+        var opcoes = new Dictionary<Program.Sexo, (string exibicao, Color cor)>
         {
             { Program.Sexo.Masculino, ("Homem", Color.Blue) },
             { Program.Sexo.Feminino, ("Mulher", Color.Pink1) }
         };
 
-        return ShowEnumSelector(pessoa, step, options, pessoa.sexo, "Sexo:");
+        return MostrarSeletorEnum(pessoa, passo, opcoes, pessoa.Sexo, "Sexo:");
     }
 
-    
-    
-    
-
-    private static StepResult StepUnitSystem(Program.Pessoa pessoa, int step)
+    // Passo 4: Pedir o sistema de unidades
+    private static StepResult PassoSistemaUnidades(Program.Pessoa pessoa, int passo)
     {
-        var options = new Dictionary<Program.UnidadeSistema, (string display, Color color)>
+        var opcoes = new Dictionary<Program.UnidadeSistema, (string exibicao, Color cor)>
         {
             { Program.UnidadeSistema.Metrico, ("Quilogramas (kg) e Metros (m)", Tema.Atual.Cabecalho) },
             { Program.UnidadeSistema.Imperial, ("Libras (lbs) e Pés/Polegadas (ft/in)", Tema.Atual.Cabecalho) }
         };
 
-        return ShowEnumSelector(pessoa, step, options, pessoa.unidadeSistema, "Sistema de Unidades:");
+        return MostrarSeletorEnum(pessoa, passo, opcoes, pessoa.UnidadeSistema, "Sistema de Unidades:");
     }
 
-    
-    
-    
-
-    private static StepResult StepHeight(Program.Pessoa pessoa, int step)
+    // Passo 5: Pedir a altura (métrico ou imperial)
+    private static StepResult PassoAltura(Program.Pessoa pessoa, int passo)
     {
-        return pessoa.unidadeSistema == Program.UnidadeSistema.Metrico
-            ? StepHeightMetric(pessoa, step)
-            : StepHeightImperial(pessoa, step);
+        return pessoa.UnidadeSistema == Program.UnidadeSistema.Metrico
+            ? PassoAlturaMetrico(pessoa, passo)
+            : PassoAlturaImperial(pessoa, passo);
     }
 
-    private static StepResult StepHeightMetric(Program.Pessoa pessoa, int step)
+    // Passo 5 (métrico): Altura em metros
+    private static StepResult PassoAlturaMetrico(Program.Pessoa pessoa, int passo)
     {
-        var altura = pessoa.altura > 0 ? pessoa.altura : 1.70f;
-        return ShowNumericAdjuster(
-            pessoa, step, ref altura,
-            0.5f, 2.5f,
-            0.1f, 0.01f,
-            altura => new Rows(new FigletText($"{altura:F2}m").Color(Tema.Atual.Altura).Centered()).Expand(),
+        var altura = pessoa.Altura > 0 ? pessoa.Altura : 1.70f;
+        return MostrarAjustadorNumerico(
+            pessoa, passo, ref altura,
+            Constantes.ALTURA_MINIMA, Constantes.ALTURA_MAXIMA,
+            Constantes.AJUSTE_ALTURA_GRANDE, Constantes.AJUSTE_ALTURA_PEQUENO,
+            a => new Rows(new FigletText($"{a:F2}m").Color(Tema.Atual.Altura).Centered()).Expand(),
             "↑ +10cm  ↓ -10cm  → +1cm  ← -1cm",
             true
         );
     }
 
-    private static StepResult StepHeightImperial(Program.Pessoa pessoa, int step)
+    // Passo 5 (imperial): Altura em pés e polegadas
+    private static StepResult PassoAlturaImperial(Program.Pessoa pessoa, int passo)
     {
-        var (feet, inches) = pessoa.altura > 0
-            ? UnitConverter.MetersToFeetInches(pessoa.altura)
+        var (pes, polegadas) = pessoa.Altura > 0
+            ? UnitConverter.MetrosParaPesPolegadas(pessoa.Altura)
             : (5, 7);
 
         while (true)
         {
-            var lista = BuildPersonInfo(pessoa);
-            var alturaMetros = UnitConverter.FeetInchesToMeters(feet, inches);
+            var lista = ConstruirInfoPessoa(pessoa);
+            var alturaMetros = UnitConverter.PesPolegadasParaMetros(pes, polegadas);
 
-            lista.Add(new Rows(new FigletText($"{feet}'{inches}\"").Color(Tema.Atual.Altura).Centered()).Expand());
+            lista.Add(new Rows(new FigletText($"{pes}'{polegadas}\"").Color(Tema.Atual.Altura).Centered()).Expand());
             lista.Add(new Markup($"[dim]({alturaMetros:F2}m)[/]").Centered());
 
-            if (pessoa.pesoInicial > 0)
-                lista.Add(BuildBMIDisplay(pessoa.pesoInicial, alturaMetros));
+            if (pessoa.PesoInicial > 0)
+                lista.Add(CriarExibicaoIMC(pessoa.PesoInicial, alturaMetros));
 
-            lista.Add(BuildControlsPanel("↑ +1ft  ↓ -1ft  → +1in  ← -1in"));
+            lista.Add(CriarPainelControlos("↑ +1ft  ↓ -1ft  → +1in  ← -1in"));
 
-            var (left, right) = BuildStepPanels(pessoa, step, new Rows(lista));
-            ShowStep(step, left, right, "ESC=voltar");
+            var (esquerda, direita) = CriarPaineisPasso(pessoa, passo, new Rows(lista));
+            MostrarPasso(passo, esquerda, direita, "ESC=voltar");
 
             switch (Console.ReadKey(true).Key)
             {
-                case ConsoleKey.UpArrow: feet = Math.Min(feet + 1, 8); break;
-                case ConsoleKey.DownArrow: feet = Math.Max(feet - 1, 3); break;
+                case ConsoleKey.UpArrow: 
+                    pes = Math.Min(pes + 1, Constantes.ALTURA_MAXIMA_FEET); 
+                    break;
+                case ConsoleKey.DownArrow: 
+                    pes = Math.Max(pes - 1, Constantes.ALTURA_MINIMA_FEET); 
+                    break;
                 case ConsoleKey.RightArrow:
-                    inches++;
-                    if (inches >= 12)
+                    polegadas++;
+                    if (polegadas >= Constantes.POLEGADAS_POR_PE)
                     {
-                        inches = 0;
-                        feet = Math.Min(feet + 1, 8);
+                        polegadas = 0;
+                        pes = Math.Min(pes + 1, Constantes.ALTURA_MAXIMA_FEET);
                     }
-
                     break;
                 case ConsoleKey.LeftArrow:
-                    inches--;
-                    if (inches < 0)
+                    polegadas--;
+                    if (polegadas < 0)
                     {
-                        inches = 11;
-                        feet = Math.Max(feet - 1, 3);
+                        polegadas = Constantes.POLEGADAS_POR_PE - 1;
+                        pes = Math.Max(pes - 1, Constantes.ALTURA_MINIMA_FEET);
                     }
-
                     break;
                 case ConsoleKey.Enter:
-                    return StepResult.Next(UnitConverter.FeetInchesToMeters(feet, inches));
+                    return StepResult.Next(UnitConverter.PesPolegadasParaMetros(pes, polegadas));
                 case ConsoleKey.Escape:
                     return StepResult.Back();
             }
         }
     }
 
-    
-    
-    
-
-    private static StepResult StepWeight(Program.Pessoa pessoa, int step)
+    // Passo 6: Pedir o peso (métrico ou imperial)
+    private static StepResult PassoPeso(Program.Pessoa pessoa, int passo)
     {
-        return pessoa.unidadeSistema == Program.UnidadeSistema.Metrico
-            ? StepWeightMetric(pessoa, step)
-            : StepWeightImperial(pessoa, step);
+        return pessoa.UnidadeSistema == Program.UnidadeSistema.Metrico
+            ? PassoPesoMetrico(pessoa, passo)
+            : PassoPesoImperial(pessoa, passo);
     }
 
-    private static StepResult StepWeightMetric(Program.Pessoa pessoa, int step)
+    // Passo 6 (métrico): Peso em kg
+    private static StepResult PassoPesoMetrico(Program.Pessoa pessoa, int passo)
     {
-        var peso = pessoa.pesoInicial > 0 ? pessoa.pesoInicial : 70f;
-        return ShowNumericAdjuster(
-            pessoa, step, ref peso,
-            30f, 300f,
-            1f, 0.1f,
-            peso => new Rows(new FigletText($"{peso:F1}kg").Color(Tema.Atual.Peso).Centered()).Expand(),
+        var peso = pessoa.PesoInicial > 0 ? pessoa.PesoInicial : 70f;
+        return MostrarAjustadorNumerico(
+            pessoa, passo, ref peso,
+            Constantes.PESO_MINIMO, Constantes.PESO_MAXIMO,
+            Constantes.AJUSTE_PESO_GRANDE, Constantes.AJUSTE_PESO_PEQUENO,
+            p => new Rows(new FigletText($"{p:F1}kg").Color(Tema.Atual.Peso).Centered()).Expand(),
             "↑ +1kg  ↓ -1kg  → +100g  ← -100g",
             true,
             true
         );
     }
 
-    private static StepResult StepWeightImperial(Program.Pessoa pessoa, int step)
+    // Passo 6 (imperial): Peso em libras
+    private static StepResult PassoPesoImperial(Program.Pessoa pessoa, int passo)
     {
-        var pesoLbs = pessoa.pesoInicial > 0 ? UnitConverter.KgToLbs(pessoa.pesoInicial) : 154f;
+        var pesoLbs = pessoa.PesoInicial > 0 ? UnitConverter.KgParaLbs(pessoa.PesoInicial) : 154f;
 
         while (true)
         {
-            var lista = BuildPersonInfo(pessoa, true);
+            var lista = ConstruirInfoPessoa(pessoa, true);
             lista.RemoveAt(lista.Count - 1);
             lista.Add(new Rule());
 
-            var pesoKg = UnitConverter.LbsToKg(pesoLbs);
+            var pesoKg = UnitConverter.LbsParaKg(pesoLbs);
 
             lista.Add(new Rows(new FigletText($"{pesoLbs:F1}lb").Color(Tema.Atual.Peso).Centered()).Expand());
             lista.Add(new Markup($"[dim]({pesoKg:F1}kg)[/]").Centered());
 
-            if (pessoa.altura > 0)
-                lista.Add(BuildBMIDisplay(pesoKg, pessoa.altura));
+            if (pessoa.Altura > 0)
+                lista.Add(CriarExibicaoIMC(pesoKg, pessoa.Altura));
 
-            lista.Add(BuildControlsPanel("↑ +1lbs  ↓ -1lbs  → +0.5lbs  ← -0.5lbs"));
+            lista.Add(CriarPainelControlos("↑ +1lbs  ↓ -1lbs  → +0.5lbs  ← -0.5lbs"));
 
-            var (left, right) = BuildStepPanels(pessoa, step, new Rows(lista));
-            ShowStep(step, left, right, "ESC=voltar");
+            var (esquerda, direita) = CriarPaineisPasso(pessoa, passo, new Rows(lista));
+            MostrarPasso(passo, esquerda, direita, "ESC=voltar");
 
             switch (Console.ReadKey(true).Key)
             {
-                case ConsoleKey.UpArrow: pesoLbs = Math.Min(pesoLbs + 1f, 661f); break;
-                case ConsoleKey.DownArrow: pesoLbs = Math.Max(pesoLbs - 1f, 66f); break;
-                case ConsoleKey.RightArrow: pesoLbs = Math.Min(pesoLbs + 0.5f, 661f); break;
-                case ConsoleKey.LeftArrow: pesoLbs = Math.Max(pesoLbs - 0.5f, 66f); break;
-                case ConsoleKey.Enter: return StepResult.Next(UnitConverter.LbsToKg(pesoLbs));
-                case ConsoleKey.Escape: return StepResult.Back();
+                case ConsoleKey.UpArrow: 
+                    pesoLbs = Math.Min(pesoLbs + Constantes.AJUSTE_PESO_GRANDE_LBS, Constantes.PESO_MAXIMO_LBS); 
+                    break;
+                case ConsoleKey.DownArrow: 
+                    pesoLbs = Math.Max(pesoLbs - Constantes.AJUSTE_PESO_GRANDE_LBS, Constantes.PESO_MINIMO_LBS); 
+                    break;
+                case ConsoleKey.RightArrow: 
+                    pesoLbs = Math.Min(pesoLbs + Constantes.AJUSTE_PESO_PEQUENO_LBS, Constantes.PESO_MAXIMO_LBS); 
+                    break;
+                case ConsoleKey.LeftArrow: 
+                    pesoLbs = Math.Max(pesoLbs - Constantes.AJUSTE_PESO_PEQUENO_LBS, Constantes.PESO_MINIMO_LBS); 
+                    break;
+                case ConsoleKey.Enter: 
+                    return StepResult.Next(UnitConverter.LbsParaKg(pesoLbs));
+                case ConsoleKey.Escape: 
+                    return StepResult.Back();
             }
         }
     }
 
-    
-    
-    
-
-    private static StepResult StepActivityLevel(Program.Pessoa pessoa, int step)
+    // Passo 7: Pedir nível de atividade física
+    private static StepResult PassoNivelAtividade(Program.Pessoa pessoa, int passo)
     {
-        var options = new Dictionary<Program.NivelAtividade, (string display, Color color)>
+        var opcoes = new Dictionary<Program.NivelAtividade, (string exibicao, Color cor)>
         {
             { Program.NivelAtividade.Sedentario, ("Pouco ou nenhum exercício", Tema.Atual.Texto) },
             { Program.NivelAtividade.Leve, ("Exercício 1-3 dias/semana", Tema.Atual.Texto) },
@@ -327,18 +334,15 @@ public static class UserCreationWizard
             { Program.NivelAtividade.MuitoAtivo, ("Exercício diário intenso", Tema.Atual.Texto) }
         };
 
-        return ShowEnumSelector(pessoa, step, options,
-            pessoa.nivelAtividade != default ? pessoa.nivelAtividade : Program.NivelAtividade.Moderado,
-            "Nível de Atividade:", true, true);
+        return MostrarSeletorEnum(pessoa, passo, opcoes,
+            pessoa.NivelAtividade != default ? pessoa.NivelAtividade : Program.NivelAtividade.Moderado,
+            "Nível de Atividade:", true);
     }
 
-    
-    
-    
-
-    private static StepResult StepGoal(Program.Pessoa pessoa, int step)
+    // Passo 8: Pedir objetivo
+    private static StepResult PassoObjetivo(Program.Pessoa pessoa, int passo)
     {
-        var options = new Dictionary<Program.Objetivo, (string display, Color color)>
+        var opcoes = new Dictionary<Program.Objetivo, (string exibicao, Color cor)>
         {
             { Program.Objetivo.PerderPeso, ("Déficit calórico", Tema.Atual.Texto) },
             { Program.Objetivo.ManterPeso, ("Manutenção", Tema.Atual.Texto) },
@@ -347,45 +351,43 @@ public static class UserCreationWizard
             { Program.Objetivo.Recomposicao, ("Ganhar músculo e perder gordura", Tema.Atual.Texto) }
         };
 
-        return ShowEnumSelector(pessoa, step, options,
-            pessoa.objetivo != default ? pessoa.objetivo : Program.Objetivo.ManterPeso,
-            "Objetivo:", includeFullInfo: true);
+        return MostrarSeletorEnum(pessoa, passo, opcoes,
+            pessoa.Objetivo != default ? pessoa.Objetivo : Program.Objetivo.ManterPeso,
+            "Objetivo:", incluirInfoCompleta: true);
     }
 
-    
-    
-    
-
-    private static StepResult StepTargetWeight(Program.Pessoa pessoa, int step)
+    // Passo 9: Pedir peso desejado (métrico ou imperial)
+    private static StepResult PassoPesoDesejado(Program.Pessoa pessoa, int passo)
     {
-        return pessoa.unidadeSistema == Program.UnidadeSistema.Metrico
-            ? StepTargetWeightMetric(pessoa, step)
-            : StepTargetWeightImperial(pessoa, step);
+        return pessoa.UnidadeSistema == Program.UnidadeSistema.Metrico
+            ? PassoPesoDesejadoMetrico(pessoa, passo)
+            : PassoPesoDesejadoImperial(pessoa, passo);
     }
 
-    private static StepResult StepTargetWeightMetric(Program.Pessoa pessoa, int step)
+    // Passo 9 (métrico): Peso desejado em kg
+    private static StepResult PassoPesoDesejadoMetrico(Program.Pessoa pessoa, int passo)
     {
-        var pesoDesejado = pessoa.pesoDesejado > 0 ? pessoa.pesoDesejado : pessoa.pesoInicial;
+        var pesoDesejado = pessoa.PesoDesejado > 0 ? pessoa.PesoDesejado : pessoa.PesoInicial;
 
         while (true)
         {
-            var lista = BuildPersonInfo(pessoa, true);
+            var lista = ConstruirInfoPessoa(pessoa, true);
             lista.Add(new Markup($"[{Tema.Atual.Cabecalho.ToMarkup()} bold]Peso Desejado:[/]"));
             lista.Add(new FigletText($"{pesoDesejado:F1}kg").Color(Tema.Atual.Peso).Centered());
-            lista.Add(BuildGoalValidation(pessoa.objetivo, pessoa.pesoInicial, pesoDesejado, pessoa.unidadeSistema));
-            lista.Add(BuildControlsPanel("↑ +1kg  ↓ -1kg  → +100g  ← -100g"));
+            lista.Add(CriarValidacaoObjetivo(pessoa.Objetivo, pessoa.PesoInicial, pesoDesejado, pessoa.UnidadeSistema));
+            lista.Add(CriarPainelControlos("↑ +1kg  ↓ -1kg  → +100g  ← -100g"));
 
-            var (left, right) = BuildStepPanels(pessoa, step, new Rows(lista));
-            ShowStep(step, left, right, "ESC=voltar");
+            var (esquerda, direita) = CriarPaineisPasso(pessoa, passo, new Rows(lista));
+            MostrarPasso(passo, esquerda, direita, "ESC=voltar");
 
             switch (Console.ReadKey(true).Key)
             {
-                case ConsoleKey.UpArrow: pesoDesejado = Math.Min(pesoDesejado + 1f, 300f); break;
-                case ConsoleKey.DownArrow: pesoDesejado = Math.Max(pesoDesejado - 1f, 30f); break;
-                case ConsoleKey.RightArrow: pesoDesejado = Math.Min(pesoDesejado + 0.1f, 300f); break;
-                case ConsoleKey.LeftArrow: pesoDesejado = Math.Max(pesoDesejado - 0.1f, 30f); break;
+                case ConsoleKey.UpArrow: pesoDesejado = Math.Min(pesoDesejado + 1f, Constantes.PESO_MAXIMO); break;
+                case ConsoleKey.DownArrow: pesoDesejado = Math.Max(pesoDesejado - 1f, Constantes.PESO_MINIMO); break;
+                case ConsoleKey.RightArrow: pesoDesejado = Math.Min(pesoDesejado + 0.1f, Constantes.PESO_MAXIMO); break;
+                case ConsoleKey.LeftArrow: pesoDesejado = Math.Max(pesoDesejado - 0.1f, Constantes.PESO_MINIMO); break;
                 case ConsoleKey.Enter:
-                    if (ValidateGoalWeight(pessoa.objetivo, pessoa.pesoInicial, pesoDesejado))
+                    if (ValidarPesoObjetivo(pessoa.Objetivo, pessoa.PesoInicial, pesoDesejado))
                         return StepResult.Next(pesoDesejado);
                     break;
                 case ConsoleKey.Escape: return StepResult.Back();
@@ -393,33 +395,34 @@ public static class UserCreationWizard
         }
     }
 
-    private static StepResult StepTargetWeightImperial(Program.Pessoa pessoa, int step)
+    // Passo 9 (imperial): Peso desejado em libras
+    private static StepResult PassoPesoDesejadoImperial(Program.Pessoa pessoa, int passo)
     {
-        var pesoDesejadoKg = pessoa.pesoDesejado > 0 ? pessoa.pesoDesejado : pessoa.pesoInicial;
-        var pesoLbs = UnitConverter.KgToLbs(pesoDesejadoKg);
+        var pesoDesejadoKg = pessoa.PesoDesejado > 0 ? pessoa.PesoDesejado : pessoa.PesoInicial;
+        var pesoLbs = UnitConverter.KgParaLbs(pesoDesejadoKg);
 
         while (true)
         {
-            var lista = BuildPersonInfo(pessoa, true);
-            pesoDesejadoKg = UnitConverter.LbsToKg(pesoLbs);
+            var lista = ConstruirInfoPessoa(pessoa, true);
+            pesoDesejadoKg = UnitConverter.LbsParaKg(pesoLbs);
 
             lista.Add(new Markup($"[{Tema.Atual.Cabecalho.ToMarkup()} bold]Peso Desejado:[/]"));
             lista.Add(new FigletText($"{pesoLbs:F1}lb").Color(Tema.Atual.Peso).Centered());
             lista.Add(new Markup($"[dim]({pesoDesejadoKg:F1}kg)[/]").Centered());
-            lista.Add(BuildGoalValidation(pessoa.objetivo, pessoa.pesoInicial, pesoDesejadoKg, pessoa.unidadeSistema));
-            lista.Add(BuildControlsPanel("↑ +1lbs  ↓ -1lbs  → +0.5lbs  ← -0.5lbs"));
+            lista.Add(CriarValidacaoObjetivo(pessoa.Objetivo, pessoa.PesoInicial, pesoDesejadoKg, pessoa.UnidadeSistema));
+            lista.Add(CriarPainelControlos("↑ +1lbs  ↓ -1lbs  → +0.5lbs  ← -0.5lbs"));
 
-            var (left, right) = BuildStepPanels(pessoa, step, new Rows(lista));
-            ShowStep(step, left, right, "ESC=voltar");
+            var (esquerda, direita) = CriarPaineisPasso(pessoa, passo, new Rows(lista));
+            MostrarPasso(passo, esquerda, direita, "ESC=voltar");
 
             switch (Console.ReadKey(true).Key)
             {
-                case ConsoleKey.UpArrow: pesoLbs = Math.Min(pesoLbs + 1f, 661f); break;
-                case ConsoleKey.DownArrow: pesoLbs = Math.Max(pesoLbs - 1f, 66f); break;
-                case ConsoleKey.RightArrow: pesoLbs = Math.Min(pesoLbs + 0.5f, 661f); break;
-                case ConsoleKey.LeftArrow: pesoLbs = Math.Max(pesoLbs - 0.5f, 66f); break;
+                case ConsoleKey.UpArrow: pesoLbs = Math.Min(pesoLbs + 1f, Constantes.PESO_MAXIMO_LBS); break;
+                case ConsoleKey.DownArrow: pesoLbs = Math.Max(pesoLbs - 1f, Constantes.PESO_MINIMO_LBS); break;
+                case ConsoleKey.RightArrow: pesoLbs = Math.Min(pesoLbs + 0.5f, Constantes.PESO_MAXIMO_LBS); break;
+                case ConsoleKey.LeftArrow: pesoLbs = Math.Max(pesoLbs - 0.5f, Constantes.PESO_MINIMO_LBS); break;
                 case ConsoleKey.Enter:
-                    if (ValidateGoalWeight(pessoa.objetivo, pessoa.pesoInicial, pesoDesejadoKg))
+                    if (ValidarPesoObjetivo(pessoa.Objetivo, pessoa.PesoInicial, pesoDesejadoKg))
                         return StepResult.Next(pesoDesejadoKg);
                     break;
                 case ConsoleKey.Escape: return StepResult.Back();
@@ -427,31 +430,28 @@ public static class UserCreationWizard
         }
     }
 
-    
-    
-    
-
-    private static StepResult StepConfirmation(Program.Pessoa pessoa)
+    // Passo 10: Confirmar todos os dados
+    private static StepResult PassoConfirmacao(Program.Pessoa pessoa)
     {
         while (true)
         {
-            content.Clear();
-            Helpers.CentrarVert(content, 15);
+            conteudo.Clear();
+            HelpersUI.CentrarVertical(conteudo, Constantes.OFFSET_VERTICAL_PADRAO);
 
-            var table = BuildConfirmationTable(pessoa);
+            var tabela = CriarTabelaConfirmacao(pessoa);
             List<IRenderable> conteudoConfirmar = new List<IRenderable>
             {
-                Align.Center(new Panel(table)
+                Align.Center(new Panel(tabela)
                     .Header($"[bold {Tema.Atual.Cabecalho.ToMarkup()}]Confirmação de Dados[/]")
                     .RoundedBorder()
                     .BorderColor(Tema.Atual.Borda)),
-                new Markup($"\n{BuildProgressBar(TOTAL_STEPS)}").Centered(),
+                new Markup($"\n{CriarBarraProgresso(TOTAL_PASSOS)}").Centered(),
                 new Markup($"\n[{Tema.Atual.Normal.ToMarkup()}]ENTER[/] = Confirmar e guardar | [dim]ESC = Voltar e editar[/]").Centered(),
             };
 
-            content.Add(new Rows(conteudoConfirmar));
+            conteudo.Add(new Rows(conteudoConfirmar));
 
-            Helpers.Render(content, "Criar Pessoa - Confirmação");
+            HelpersUI.Render(conteudo, "Criar Pessoa - Confirmação");
 
             switch (Console.ReadKey(true).Key)
             {
@@ -461,143 +461,145 @@ public static class UserCreationWizard
         }
     }
 
-    
-    
-    
-
-    private static List<IRenderable> BuildPersonInfo(Program.Pessoa pessoa, bool includeFullInfo = false)
+    // Constrói lista de informações da pessoa para exibir
+    private static List<IRenderable> ConstruirInfoPessoa(Program.Pessoa pessoa, bool incluirInfoCompleta = false)
     {
         var lista = new List<IRenderable>();
 
-        if (!string.IsNullOrEmpty(pessoa.nome))
-            lista.Add(new Markup($"[{Tema.Atual.Cabecalho.ToMarkup()}]Nome:[/] [{Tema.Atual.Texto}]{pessoa.nome}[/]"));
+        if (!string.IsNullOrEmpty(pessoa.Nome))
+            lista.Add(new Markup($"[{Tema.Atual.Cabecalho.ToMarkup()}]Nome:[/] [{Tema.Atual.Texto}]{pessoa.Nome}[/]"));
 
-        if (pessoa.dataNascimento != default)
+        if (pessoa.DataNascimento != default)
             lista.Add(new Markup(
-                $"[{Tema.Atual.Cabecalho.ToMarkup()}]Data:[/] [{Tema.Atual.Texto}]{pessoa.dataNascimento:dd/MM/yyyy}[/]"));
+                $"[{Tema.Atual.Cabecalho.ToMarkup()}]Data:[/] [{Tema.Atual.Texto}]{pessoa.DataNascimento:dd/MM/yyyy}[/]"));
 
-        if (pessoa.sexo != default)
+        if (pessoa.Sexo != default)
         {
-            var corSexo = pessoa.sexo == Program.Sexo.Masculino ? Color.Blue : Color.Pink1;
+            var corSexo = pessoa.Sexo == Program.Sexo.Masculino ? Color.Blue : Color.Pink1;
             lista.Add(new Markup(
-                $"[{Tema.Atual.Cabecalho.ToMarkup()}]Sexo:[/] [{corSexo.ToMarkup()}]{pessoa.sexo}[/]"));
+                $"[{Tema.Atual.Cabecalho.ToMarkup()}]Sexo:[/] [{corSexo.ToMarkup()}]{pessoa.Sexo}[/]"));
         }
 
-        if (includeFullInfo)
+        if (incluirInfoCompleta)
         {
-            if (pessoa.altura > 0)
+            if (pessoa.Altura > 0)
                 lista.Add(new Markup(
-                    $"[{Tema.Atual.Cabecalho.ToMarkup()}]Altura:[/] [{Tema.Atual.Altura}]{UnitConverter.FormatHeight(pessoa.altura, pessoa.unidadeSistema)}[/]"));
+                    $"[{Tema.Atual.Cabecalho.ToMarkup()}]Altura:[/] [{Tema.Atual.Altura}]{UnitConverter.FormatarAltura(pessoa.Altura, pessoa.UnidadeSistema)}[/]"));
 
-            if (pessoa.pesoInicial > 0)
+            if (pessoa.PesoInicial > 0)
             {
                 lista.Add(new Markup(
-                    $"[{Tema.Atual.Cabecalho.ToMarkup()}]Peso:[/] [{Tema.Atual.Peso}]{UnitConverter.FormatWeight(pessoa.pesoInicial, pessoa.unidadeSistema)}[/]"));
+                    $"[{Tema.Atual.Cabecalho.ToMarkup()}]Peso:[/] [{Tema.Atual.Peso}]{UnitConverter.FormatarPeso(pessoa.PesoInicial, pessoa.UnidadeSistema)}[/]"));
 
-                if (pessoa.altura > 0)
+                if (pessoa.Altura > 0)
                 {
-                    var bmi = UnitConverter.CalculateBMI(pessoa.pesoInicial, pessoa.altura);
-                    var bmiColor = Helpers.IMCtoColor(bmi);
+                    var imc = CalcIMC.Calcular(pessoa.PesoInicial, pessoa.Altura);
+                    var corIMC = CalcIMC.ObterCor(imc);
                     lista.Add(new Markup(
-                        $"[{Tema.Atual.Cabecalho.ToMarkup()}]IMC:[/] [{bmiColor.ToMarkup()}]{bmi:F1}[/] [dim]({UnitConverter.GetBMICategory(bmi)})[/]"));
+                        $"[{Tema.Atual.Cabecalho.ToMarkup()}]IMC:[/] [{corIMC.ToMarkup()}]{imc:F1}[/] [dim]({UnitConverter.ObterCategoriaIMC(imc)})[/]"));
                 }
             }
         }
 
-        if (lista.Count > 0 && !includeFullInfo)
+        if (lista.Count > 0 && !incluirInfoCompleta)
             lista.Add(new Rule());
 
         return lista;
     }
 
-    private static (Panel left, Panel right) BuildStepPanels(Program.Pessoa pessoa, int step, IRenderable inputContent)
+    // Cria painéis esquerdo e direito para cada passo
+    private static (Panel esquerda, Panel direita) CriarPaineisPasso(Program.Pessoa pessoa, int passo, IRenderable conteudoInput)
     {
-        var leftPanel = new Panel(inputContent)
+        var painelEsquerdo = new Panel(conteudoInput)
             .RoundedBorder()
             .BorderColor(Tema.Atual.Borda);
 
-        var rightContent = new List<IRenderable>
+        var conteudoDireito = new List<IRenderable>
         {
             new Markup(
-                $"\n[{Tema.Atual.Texto} bold]User:[/] {(string.IsNullOrEmpty(pessoa.nome) ? "?" : pessoa.nome)}"),
+                $"\n[{Tema.Atual.Texto} bold]User:[/] {(string.IsNullOrEmpty(pessoa.Nome) ? "?" : pessoa.Nome)}"),
             new Markup(
-                $"[{Tema.Atual.Texto} bold]Data:[/] {(pessoa.dataNascimento != default ? pessoa.dataNascimento.ToString("dd/MM/yyyy") : "??")}"),
+                $"[{Tema.Atual.Texto} bold]Data:[/] {(pessoa.DataNascimento != default ? pessoa.DataNascimento.ToString("dd/MM/yyyy") : "??")}"),
             new Markup(
-                $"[{Tema.Atual.Texto} bold]Idade:[/] {(pessoa.dataNascimento != default ? pessoa.Idade.ToString() : "??")}")
+                $"[{Tema.Atual.Texto} bold]Idade:[/] {(pessoa.DataNascimento != default ? pessoa.Idade.ToString() : "??")}")
         };
 
-        if (pessoa.sexo != default)
+        if (pessoa.Sexo != default)
         {
-            var corSexo = pessoa.sexo == Program.Sexo.Masculino ? Color.Blue : Color.Pink1;
-            rightContent.Add(new Markup($"[{Tema.Atual.Texto} bold]Sexo:[/] [{corSexo.ToMarkup()}]{pessoa.sexo}[/]\n"));
+            var corSexo = pessoa.Sexo == Program.Sexo.Masculino ? Color.Blue : Color.Pink1;
+            conteudoDireito.Add(new Markup($"[{Tema.Atual.Texto} bold]Sexo:[/] [{corSexo.ToMarkup()}]{pessoa.Sexo}[/]\n"));
         }
         else
         {
-            rightContent.Add(new Markup($"[{Tema.Atual.Texto} bold]Sexo:[/] ??\n"));
+            conteudoDireito.Add(new Markup($"[{Tema.Atual.Texto} bold]Sexo:[/] ??\n"));
         }
 
-        rightContent.Add(new Rule());
-        rightContent.Add(new Markup(
-            $"\n[{Tema.Atual.Altura} bold]Altura:[/] {(pessoa.altura > 0 ? UnitConverter.FormatHeight(pessoa.altura, pessoa.unidadeSistema) : "??")}"));
-        rightContent.Add(new Markup(
-            $"[{Tema.Atual.Peso} bold]Peso:[/] {(pessoa.pesoInicial > 0 ? UnitConverter.FormatWeight(pessoa.pesoInicial, pessoa.unidadeSistema) : "??")}"));
+        conteudoDireito.Add(new Rule());
+        conteudoDireito.Add(new Markup(
+            $"\n[{Tema.Atual.Altura} bold]Altura:[/] {(pessoa.Altura > 0 ? UnitConverter.FormatarAltura(pessoa.Altura, pessoa.UnidadeSistema) : "??")}"));
+        conteudoDireito.Add(new Markup(
+            $"[{Tema.Atual.Peso} bold]Peso:[/] {(pessoa.PesoInicial > 0 ? UnitConverter.FormatarPeso(pessoa.PesoInicial, pessoa.UnidadeSistema) : "??")}"));
 
-        if (pessoa.pesoInicial > 0 && pessoa.altura > 0)
+        if (pessoa.PesoInicial > 0 && pessoa.Altura > 0)
         {
-            var bmi = UnitConverter.CalculateBMI(pessoa.pesoInicial, pessoa.altura);
-            var bmiColor = Helpers.IMCtoColor(bmi);
-            rightContent.Add(new Markup(
-                $"[{Tema.Atual.Peso} bold]IMC:[/] [{bmiColor.ToMarkup()}]{bmi:F1}[/] [dim]{UnitConverter.GetBMICategory(bmi)}[/]"));
+            var imc = CalcIMC.Calcular(pessoa.PesoInicial, pessoa.Altura);
+            var corIMC = CalcIMC.ObterCor(imc);
+            conteudoDireito.Add(new Markup(
+                $"[{Tema.Atual.Peso} bold]IMC:[/] [{corIMC.ToMarkup()}]{imc:F1}[/] [dim]{UnitConverter.ObterCategoriaIMC(imc)}[/]"));
         }
 
-        rightContent.Add(new Markup(
-            $"[{Tema.Atual.Peso} bold]Peso Desejado:[/] {(pessoa.pesoDesejado > 0 ? UnitConverter.FormatWeight(pessoa.pesoDesejado, pessoa.unidadeSistema) : "??\n")}"));
-        rightContent.Add(new Rule());
-        rightContent.Add(new Markup(
-            $"\n[{Tema.Atual.Texto} bold]Atividade:[/] {(pessoa.nivelAtividade != default ? pessoa.nivelAtividade.ToString() : "??")}"));
-        rightContent.Add(new Markup(
-            $"[{Tema.Atual.Texto} bold]Objetivo:[/] {(pessoa.objetivo != default ? pessoa.objetivo.ToString() : "??\n")}"));
+        conteudoDireito.Add(new Markup(
+            $"[{Tema.Atual.Peso} bold]Peso Desejado:[/] {(pessoa.PesoDesejado > 0 ? UnitConverter.FormatarPeso(pessoa.PesoDesejado, pessoa.UnidadeSistema) : "??\n")}"));
+        conteudoDireito.Add(new Rule());
+        conteudoDireito.Add(new Markup(
+            $"\n[{Tema.Atual.Texto} bold]Atividade:[/] {(pessoa.NivelAtividade != default ? pessoa.NivelAtividade.ToString() : "??")}"));
+        conteudoDireito.Add(new Markup(
+            $"[{Tema.Atual.Texto} bold]Objetivo:[/] {(pessoa.Objetivo != default ? pessoa.Objetivo.ToString() : "??\n")}"));
 
-        var rightPanel = new Panel(new Rows(rightContent))
+        var painelDireito = new Panel(new Rows(conteudoDireito))
             .RoundedBorder()
             .BorderColor(Tema.Atual.Borda)
             .Header("[bold]Preview[/]");
 
-        return (leftPanel, rightPanel);
+        return (painelEsquerdo, painelDireito);
     }
 
-    private static Markup BuildBMIDisplay(float weight, float height)
+    // Cria exibição do IMC calculado
+    private static Markup CriarExibicaoIMC(float peso, float altura)
     {
-        var bmi = UnitConverter.CalculateBMI(weight, height);
-        var bmiColor = Helpers.IMCtoColor(bmi);
-        return new Markup($"[{bmiColor.ToMarkup()}]IMC: {bmi:F1} - {UnitConverter.GetBMICategory(bmi)}[/]").Centered();
+        var imc = CalcIMC.Calcular(peso, altura);
+        var corIMC = CalcIMC.ObterCor(imc);
+        return new Markup($"[{corIMC.ToMarkup()}]IMC: {imc:F1} - {UnitConverter.ObterCategoriaIMC(imc)}[/]").Centered();
     }
 
-    private static Markup BuildControlsPanel(string controls)
+    // Cria painel de controlos
+    private static Markup CriarPainelControlos(string controlos)
     {
         return new Markup(
             $"[bold {Tema.Atual.Cabecalho.ToMarkup()}]Controlos:[/]\n" +
-            $"  {controls}\n" +
+            $"  {controlos}\n" +
             $"[{Tema.Atual.Normal.ToMarkup()}]⏎ Enter[/] confirmar"
         ).Centered();
     }
 
-    private static Markup BuildGoalValidation(Program.Objetivo objetivo, float pesoAtual, float pesoDesejado,
+    // Cria validação visual do objetivo vs peso desejado
+    private static Markup CriarValidacaoObjetivo(Program.Objetivo objetivo, float pesoAtual, float pesoDesejado,
         Program.UnidadeSistema sistema)
     {
-        var isValid = ValidateGoalWeight(objetivo, pesoAtual, pesoDesejado);
+        var valido = ValidarPesoObjetivo(objetivo, pesoAtual, pesoDesejado);
 
-        if (isValid)
+        if (valido)
             return new Markup($"\n[{Tema.Atual.Normal.ToMarkup()}]✓ Objetivo compatível[/]").Centered();
 
-        var currentWeight = UnitConverter.FormatWeight(pesoAtual, sistema);
-        var comparison = objetivo == Program.Objetivo.PerderPeso ? "<" : ">";
+        var pesoAtualFormatado = UnitConverter.FormatarPeso(pesoAtual, sistema);
+        var comparacao = objetivo == Program.Objetivo.PerderPeso ? "<" : ">";
 
-        return new Markup($"\n[{Color.Red.ToMarkup()}]⚠ Peso desejado deve ser {comparison} {currentWeight}[/]")
+        return new Markup($"\n[{Color.Red.ToMarkup()}]⚠ Peso desejado deve ser {comparacao} {pesoAtualFormatado}[/]")
             .Centered();
     }
 
-    private static bool ValidateGoalWeight(Program.Objetivo objetivo, float pesoAtual, float pesoDesejado)
+    // Valida se o peso desejado é compatível com o objetivo
+    private static bool ValidarPesoObjetivo(Program.Objetivo objetivo, float pesoAtual, float pesoDesejado)
     {
         return objetivo switch
         {
@@ -607,318 +609,198 @@ public static class UserCreationWizard
         };
     }
 
-    private static string BuildProgressBar(int currentStep)
+    // Cria barra de progresso dos passos
+    private static string CriarBarraProgresso(int passoAtual)
     {
-        var bar = "";
-        for (var i = 1; i <= TOTAL_STEPS; i++)
-            bar += i <= currentStep
+        var barra = "";
+        for (var i = 1; i <= TOTAL_PASSOS; i++)
+            barra += i <= passoAtual
                 ? $"[{Tema.Atual.Normal.ToMarkup()}]●[/]"
                 : "[dim]○[/]";
-        return bar;
+        return barra;
     }
 
-    private static Table BuildConfirmationTable(Program.Pessoa pessoa)
+    // Cria tabela de confirmação com todos os dados
+    private static Table CriarTabelaConfirmacao(Program.Pessoa pessoa)
     {
-        var table = new Table()
+        var tabela = new Table()
             .Centered()
             .RoundedBorder()
             .BorderColor(Tema.Atual.Borda)
             .AddColumn(new TableColumn("[bold]Campo[/]").LeftAligned())
             .AddColumn(new TableColumn("[bold]Valor[/]").RightAligned());
 
-        table.AddRow("Nome", $"[{Tema.Atual.Texto}]{pessoa.nome}[/]");
-        table.AddRow("Data de Nascimento", $"[{Tema.Atual.Texto}]{pessoa.dataNascimento:dd/MM/yyyy}[/]");
-        table.AddRow("Idade", $"[{Tema.Atual.Texto}]{pessoa.Idade} anos[/]");
+        tabela.AddRow("Nome", $"[{Tema.Atual.Texto}]{pessoa.Nome}[/]");
+        tabela.AddRow("Data de Nascimento", $"[{Tema.Atual.Texto}]{pessoa.DataNascimento:dd/MM/yyyy}[/]");
+        tabela.AddRow("Idade", $"[{Tema.Atual.Texto}]{pessoa.Idade} anos[/]");
 
-        var corSexo = pessoa.sexo == Program.Sexo.Masculino ? Color.Blue : Color.Pink1;
-        table.AddRow("Sexo", $"[{corSexo.ToMarkup()}]{pessoa.sexo}[/]");
-        table.AddRow("Sistema", $"[{Tema.Atual.Texto}]{pessoa.unidadeSistema}[/]");
-        table.AddRow("Altura",
-            $"[{Tema.Atual.Altura}]{UnitConverter.FormatHeight(pessoa.altura, pessoa.unidadeSistema)}[/]");
-        table.AddRow("Peso", $"[{Tema.Atual.Peso}]{UnitConverter.FormatWeight(pessoa.pesoInicial, pessoa.unidadeSistema)}[/]");
+        var corSexo = pessoa.Sexo == Program.Sexo.Masculino ? Color.Blue : Color.Pink1;
+        tabela.AddRow("Sexo", $"[{corSexo.ToMarkup()}]{pessoa.Sexo}[/]");
+        tabela.AddRow("Sistema", $"[{Tema.Atual.Texto}]{pessoa.UnidadeSistema}[/]");
+        tabela.AddRow("Altura",
+            $"[{Tema.Atual.Altura}]{UnitConverter.FormatarAltura(pessoa.Altura, pessoa.UnidadeSistema)}[/]");
+        tabela.AddRow("Peso", $"[{Tema.Atual.Peso}]{UnitConverter.FormatarPeso(pessoa.PesoInicial, pessoa.UnidadeSistema)}[/]");
 
-        var bmi = UnitConverter.CalculateBMI(pessoa.pesoInicial, pessoa.altura);
-        var bmiColor = Helpers.IMCtoColor(bmi);
-        table.AddRow("IMC", $"[{bmiColor.ToMarkup()}]{bmi:F1} ({UnitConverter.GetBMICategory(bmi)})[/]");
+        var imc = CalcIMC.Calcular(pessoa.PesoInicial, pessoa.Altura);
+        var corIMC = CalcIMC.ObterCor(imc);
+        tabela.AddRow("IMC", $"[{corIMC.ToMarkup()}]{imc:F1} ({UnitConverter.ObterCategoriaIMC(imc)})[/]");
 
-        table.AddRow("Nível de Atividade",
-            $"[{Tema.Atual.Texto}]{(pessoa.nivelAtividade != default ? pessoa.nivelAtividade.ToString() : "Não especificado")}[/]");
-        table.AddRow("Objetivo", $"[{Tema.Atual.Texto}]{pessoa.objetivo}[/]");
-        table.AddRow("Peso Desejado",
-            $"[{Tema.Atual.Peso}]{UnitConverter.FormatWeight(pessoa.pesoDesejado, pessoa.unidadeSistema)}[/]");
+        tabela.AddRow("Nível de Atividade",
+            $"[{Tema.Atual.Texto}]{(pessoa.NivelAtividade != default ? pessoa.NivelAtividade.ToString() : "Não especificado")}[/]");
+        tabela.AddRow("Objetivo", $"[{Tema.Atual.Texto}]{pessoa.Objetivo}[/]");
+        tabela.AddRow("Peso Desejado",
+            $"[{Tema.Atual.Peso}]{UnitConverter.FormatarPeso(pessoa.PesoDesejado, pessoa.UnidadeSistema)}[/]");
 
-        return table;
+        return tabela;
     }
 
-    private static void ShowStep(int step, Panel left, Panel right, string instructions)
+    // Mostra o passo atual do formulario
+    private static void MostrarPasso(int passo, Panel esquerda, Panel direita, string instrucoes)
     {
-        var mainTable = new Table()
+        var tabelaPrincipal = new Table()
             .AddColumn(new TableColumn("").Width(50))
             .AddColumn(new TableColumn("").Width(50))
             .HideHeaders()
             .NoBorder()
             .Collapse();
 
-        mainTable.AddRow(left, right);
+        tabelaPrincipal.AddRow(esquerda, direita);
 
-        content.Clear();
-        Helpers.CentrarVert(content, 10);
-        content.Add(Align.Center(mainTable));
+        conteudo.Clear();
+        HelpersUI.CentrarVertical(conteudo, Constantes.OFFSET_VERTICAL_MEDIO);
+        conteudo.Add(Align.Center(tabelaPrincipal));
 
-        if (!string.IsNullOrEmpty(instructions))
-            content.Add(new Markup($"\n[dim]{BuildProgressBar(step)}\n{instructions}[/]").Centered());
+        if (!string.IsNullOrEmpty(instrucoes))
+            conteudo.Add(new Markup($"\n[dim]{CriarBarraProgresso(passo)}\n{instrucoes}[/]").Centered());
 
-        Helpers.Render(content, $"Criar Pessoa - Passo {step}/{TOTAL_STEPS}");
+        HelpersUI.Render(conteudo, $"Criar Pessoa - Passo {passo}/{TOTAL_PASSOS}");
     }
 
-    
-    
-    
-
-    private static StepResult ShowEnumSelector<T>(
+    // Mostra um seletor de enum genérico
+    private static StepResult MostrarSeletorEnum<T>(
         Program.Pessoa pessoa,
-        int step,
-        Dictionary<T, (string display, Color color)> options,
-        T defaultValue,
-        string fieldName,
-        bool optional = false,
-        bool includeFullInfo = false) where T : Enum
+        int passo,
+        Dictionary<T, (string exibicao, Color cor)> opcoes,
+        T valorPadrao,
+        string nomeCampo,
+        bool incluirInfoCompleta = false) where T : Enum
     {
-        var opcoes = options.Keys.ToList();
-        var selectedIndex = opcoes.IndexOf(defaultValue);
-        if (selectedIndex == -1) selectedIndex = 0;
+        var listaOpcoes = opcoes.Keys.ToList();
+        var indiceSelecionado = listaOpcoes.IndexOf(valorPadrao);
+        if (indiceSelecionado == -1) indiceSelecionado = 0;
 
         while (true)
         {
-            var lista = BuildPersonInfo(pessoa, includeFullInfo);
-            lista.Add(new Markup($"[{Tema.Atual.Cabecalho.ToMarkup()} bold]{fieldName}[/]" +
-                                 (optional ? " [dim](opcional)[/]" : "") + "\n"));
+            var lista = ConstruirInfoPessoa(pessoa, incluirInfoCompleta);
+            lista.Add(new Markup($"[{Tema.Atual.Cabecalho.ToMarkup()} bold]{nomeCampo}[/]"));
 
-            for (var i = 0; i < opcoes.Count; i++)
+            for (var i = 0; i < listaOpcoes.Count; i++)
             {
-                var prefix = i == selectedIndex ? $"[{Tema.Atual.Cabecalho.ToMarkup()}]►[/] " : "  ";
-                var (display, baseColor) = options[opcoes[i]];
-                var color = i == selectedIndex ? Tema.Atual.Cabecalho : baseColor;
+                var prefixo = i == indiceSelecionado ? $"[{Tema.Atual.Cabecalho.ToMarkup()}]►[/] " : "  ";
+                var (exibicao, corBase) = opcoes[listaOpcoes[i]];
+                var cor = i == indiceSelecionado ? Tema.Atual.Cabecalho : corBase;
 
-                lista.Add(new Markup($"{prefix}[{color.ToMarkup()}]{opcoes[i]}[/] [dim]- {display}[/]"));
+                lista.Add(new Markup($"{prefixo}[{cor.ToMarkup()}]{listaOpcoes[i]}[/] [dim]- {exibicao}[/]"));
             }
 
-            var (left, right) = BuildStepPanels(pessoa, step, new Rows(lista));
-            var instructions = optional
-                ? "↑↓=navegar | ENTER=confirmar | S=pular | ESC=voltar"
-                : "↑↓=navegar | ENTER=confirmar | ESC=voltar";
+            var (esquerda, direita) = CriarPaineisPasso(pessoa, passo, new Rows(lista));
+            var instrucoes = "↑↓=navegar | ENTER=confirmar | ESC=volta";
 
-            ShowStep(step, left, right, instructions);
+            MostrarPasso(passo, esquerda, direita, instrucoes);
 
-            var key = Console.ReadKey(true).Key;
+            var tecla = Console.ReadKey(true).Key;
 
-            switch (key)
+            switch (tecla)
             {
                 case ConsoleKey.UpArrow:
-                    selectedIndex = (selectedIndex - 1 + opcoes.Count) % opcoes.Count;
+                    indiceSelecionado = (indiceSelecionado - 1 + listaOpcoes.Count) % listaOpcoes.Count;
                     break;
                 case ConsoleKey.DownArrow:
-                    selectedIndex = (selectedIndex + 1) % opcoes.Count;
+                    indiceSelecionado = (indiceSelecionado + 1) % listaOpcoes.Count;
                     break;
                 case ConsoleKey.Enter:
-                    return StepResult.Next(opcoes[selectedIndex]);
-                case ConsoleKey.S when optional:
-                    return StepResult.Skip();
+                    return StepResult.Next(listaOpcoes[indiceSelecionado]);
                 case ConsoleKey.Escape:
                     return StepResult.Back();
             }
         }
     }
 
-    
-    
-    
-
-    private static StepResult ShowNumericAdjuster(
+    // Mostra um ajustador numérico
+    private static StepResult MostrarAjustadorNumerico(
         Program.Pessoa pessoa,
-        int step,
-        ref float value,
+        int passo,
+        ref float valor,
         float min,
         float max,
-        float largeStep,
-        float smallStep,
-        Func<float, IRenderable> format,
-        string controls,
-        bool showBMI = false,
-        bool includeFullInfo = false)
+        float passoGrande,
+        float passoPequeno,
+        Func<float, IRenderable> formatar,
+        string controlos,
+        bool mostrarIMC = false,
+        bool incluirInfoCompleta = false)
     {
-        var currentValue = value;
+        var valorAtual = valor;
 
         while (true)
         {
-            var lista = BuildPersonInfo(pessoa, includeFullInfo);
-            if (includeFullInfo && lista.Count > 0)
+            var lista = ConstruirInfoPessoa(pessoa, incluirInfoCompleta);
+            if (incluirInfoCompleta && lista.Count > 0)
             {
                 lista.RemoveAt(lista.Count - 1);
                 lista.Add(new Rule());
             }
 
-            lista.Add(format(currentValue));
+            lista.Add(formatar(valorAtual));
 
-            if (showBMI && pessoa.pesoInicial > 0 && pessoa.altura > 0)
+            if (mostrarIMC && pessoa.PesoInicial > 0 && pessoa.Altura > 0)
             {
-                var weight = includeFullInfo ? currentValue : pessoa.pesoInicial;
-                var height = includeFullInfo ? pessoa.altura : currentValue;
-                lista.Add(BuildBMIDisplay(weight, height));
+                var peso = incluirInfoCompleta ? valorAtual : pessoa.PesoInicial;
+                var altura = incluirInfoCompleta ? pessoa.Altura : valorAtual;
+                lista.Add(CriarExibicaoIMC(peso, altura));
             }
 
-            lista.Add(BuildControlsPanel(controls));
+            lista.Add(CriarPainelControlos(controlos));
 
-            var (left, right) = BuildStepPanels(pessoa, step, new Rows(lista));
-            ShowStep(step, left, right, "ESC=voltar");
+            var (esquerda, direita) = CriarPaineisPasso(pessoa, passo, new Rows(lista));
+            MostrarPasso(passo, esquerda, direita, "ESC=voltar");
 
             switch (Console.ReadKey(true).Key)
             {
                 case ConsoleKey.UpArrow:
-                    currentValue = Math.Min(currentValue + largeStep, max);
+                    valorAtual = Math.Min(valorAtual + passoGrande, max);
                     break;
                 case ConsoleKey.DownArrow:
-                    currentValue = Math.Max(currentValue - largeStep, min);
+                    valorAtual = Math.Max(valorAtual - passoGrande, min);
                     break;
                 case ConsoleKey.RightArrow:
-                    currentValue = Math.Min(currentValue + smallStep, max);
+                    valorAtual = Math.Min(valorAtual + passoPequeno, max);
                     break;
                 case ConsoleKey.LeftArrow:
-                    currentValue = Math.Max(currentValue - smallStep, min);
+                    valorAtual = Math.Max(valorAtual - passoPequeno, min);
                     break;
                 case ConsoleKey.Enter:
-                    value = currentValue;
-                    return StepResult.Next(currentValue);
+                    valor = valorAtual;
+                    return StepResult.Next(valorAtual);
                 case ConsoleKey.Escape:
                     return StepResult.Back();
             }
         }
     }
 
-    
-    
-    
-
-    private static Program.Pessoa? SaveAndReturnUser(Program.Pessoa pessoa)
+    // Guarda o utilizador e retorna
+    private static Program.Pessoa? GuardarERetornarUtilizador(Program.Pessoa pessoa)
     {
         if (UserDataManager.SaveUser(pessoa))
         {
-            UserDataManager.SaveCurrentUser(pessoa.nome);
-            Helpers.MostrarMensagem($"✓ Utilizador '{pessoa.nome}' criado e guardado!", Tema.Atual.Normal);
+            UserDataManager.SaveCurrentUser(pessoa.Nome);
+            HelpersUI.MostrarMensagem($"✓ Utilizador '{pessoa.Nome}' criado e guardado!", Tema.Atual.Normal);
         }
         else
         {
-            Helpers.MostrarMensagem($"✓ Utilizador '{pessoa.nome}' criado! (Aviso: Erro ao guardar)", Color.Yellow);
+            HelpersUI.MostrarMensagem($"✓ Utilizador '{pessoa.Nome}' criado! (Aviso: Erro ao guardar)", Color.Yellow);
         }
 
         return pessoa;
-    }
-
-    
-    
-    
-
-    private class DateInput
-    {
-        private int currentField; 
-        private string day = "";
-        private string month = "";
-        private string year = "";
-
-        public void AddDigit(char digit)
-        {
-            switch (currentField)
-            {
-                case 0 when day.Length < 2:
-                    day += digit;
-                    if (day.Length == 2 && int.Parse(day) is >= 1 and <= 31)
-                        currentField = 1;
-                    else if (day.Length == 2)
-                        day = "";
-                    break;
-
-                case 1 when month.Length < 2:
-                    month += digit;
-                    if (month.Length == 2)
-                    {
-                        var monthNum = int.Parse(month);
-                        if (monthNum is >= 1 and <= 12 &&
-                            int.Parse(day) <= DateTime.DaysInMonth(DateTime.Now.Year, monthNum))
-                        {
-                            currentField = 2;
-                        }
-                        else
-                        {
-                            month = "";
-                            day = "";
-                            currentField = 0;
-                        }
-                    }
-
-                    break;
-
-                case 2 when year.Length < 4:
-                    year += digit;
-                    if (year.Length == 4)
-                    {
-                        var yearNum = int.Parse(year);
-                        if (yearNum < 1900 || yearNum > DateTime.Now.Year ||
-                            int.Parse(day) > DateTime.DaysInMonth(yearNum, int.Parse(month)))
-                        {
-                            year = "";
-                            month = "";
-                            day = "";
-                            currentField = 0;
-                        }
-                    }
-
-                    break;
-            }
-        }
-
-        public void Backspace()
-        {
-            switch (currentField)
-            {
-                case 0 when day.Length > 0:
-                    day = day[..^1];
-                    break;
-                case 1 when month.Length > 0:
-                    month = month[..^1];
-                    break;
-                case 2 when year.Length > 0:
-                    year = year[..^1];
-                    break;
-                case > 0:
-                    currentField--;
-                    if (currentField == 1) month = "";
-                    else if (currentField == 0) day = "";
-                    break;
-            }
-        }
-
-        public bool IsComplete()
-        {
-            return day.Length == 2 && month.Length == 2 && year.Length == 4;
-        }
-
-        public DateTime ToDateTime()
-        {
-            return new DateTime(int.Parse(year), int.Parse(month), int.Parse(day));
-        }
-
-        public string GetFormattedDisplay()
-        {
-            var dayDisplay = string.IsNullOrEmpty(day) ? "__" : day.PadLeft(2, '0');
-            var monthDisplay = string.IsNullOrEmpty(month) ? "__" : month.PadLeft(2, '0');
-            var yearDisplay = string.IsNullOrEmpty(year) ? "____" : year.PadLeft(4, '0');
-
-            return currentField switch
-            {
-                0 => $"[{Tema.Atual.Cabecalho.ToMarkup()}]{dayDisplay}[/]/{monthDisplay}/{yearDisplay}",
-                1 => $"{dayDisplay}/[{Tema.Atual.Cabecalho.ToMarkup()}]{monthDisplay}[/]/{yearDisplay}",
-                _ => $"{dayDisplay}/{monthDisplay}/[{Tema.Atual.Cabecalho.ToMarkup()}]{yearDisplay}[/]"
-            };
-        }
     }
 }

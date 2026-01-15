@@ -1,73 +1,68 @@
 ﻿namespace CalculadoraIMC.Core;
 
+// Conversões entre sistemas de unidades (métrico e imperial)
 public static class UnitConverter
 {
-    
-    public static float KgToLbs(float kg)
+    private const float KG_PARA_LBS = 2.20462f;
+    private const float METROS_PARA_POLEGADAS = 39.3701f;
+    private const float POLEGADAS_PARA_METROS = 0.0254f;
+
+    // Converte quilogramas para libras
+    public static float KgParaLbs(float kg)
     {
-        return kg * 2.20462f;
+        return kg * KG_PARA_LBS;
     }
 
-    public static float LbsToKg(float lbs)
+    // Converte libras para quilogramas
+    public static float LbsParaKg(float lbs)
     {
-        return lbs / 2.20462f;
+        return lbs / KG_PARA_LBS;
     }
 
-    
-    public static (int feet, int inches) MetersToFeetInches(float meters)
+    // Converte metros para pés e polegadas
+    public static (int pes, int polegadas) MetrosParaPesPolegadas(float metros)
     {
-        var totalInches = meters * 39.3701f;
-        var feet = (int)(totalInches / 12);
-        var inches = (int)(totalInches % 12);
-        return (feet, inches);
+        float totalPolegadas = metros * METROS_PARA_POLEGADAS;
+        int pes = (int)(totalPolegadas / Constantes.POLEGADAS_POR_PE);
+        int polegadas = (int)(totalPolegadas % Constantes.POLEGADAS_POR_PE);
+        return (pes, polegadas);
     }
 
-    public static float FeetInchesToMeters(int feet, int inches)
+    // Converte pés e polegadas para metros
+    public static float PesPolegadasParaMetros(int pes, int polegadas)
     {
-        return (feet * 12 + inches) * 0.0254f;
+        return (pes * Constantes.POLEGADAS_POR_PE + polegadas) * POLEGADAS_PARA_METROS;
     }
 
-    
-    public static float CalculateBMI(float weightKg, float heightMeters)
+    // Retorna a categoria do IMC
+    public static string ObterCategoriaIMC(float imc)
     {
-        if (heightMeters <= 0) return 0;
-        return weightKg / (heightMeters * heightMeters);
+        return CalcIMC.ObterCategoriaDetalhada(imc);
     }
 
-    public static string GetBMICategory(float bmi)
-    {
-        return bmi switch
-        {
-            < 18.5f => "Magreza",
-            < 25f => "Normal",
-            < 30f => "Sobrepeso",
-            < 35f => "Obesidade I",
-            < 40f => "Obesidade II",
-            _ => "Obesidade III"
-        };
-    }
-
-    
-    public static string FormatWeight(float weightKg, Program.UnidadeSistema sistema)
+    // Formata o peso de acordo com o sistema de unidades
+    public static string FormatarPeso(float pesoKg, Program.UnidadeSistema sistema)
     {
         return sistema == Program.UnidadeSistema.Metrico
-            ? $"{weightKg:F1}kg"
-            : $"{KgToLbs(weightKg):F1}lbs";
+            ? $"{pesoKg:F1}kg"
+            : $"{KgParaLbs(pesoKg):F1}lbs";
     }
 
-    public static string FormatHeight(float heightMeters, Program.UnidadeSistema sistema)
+    // Formata a altura de acordo com o sistema de unidades
+    public static string FormatarAltura(float alturaMetros, Program.UnidadeSistema sistema)
     {
         if (sistema == Program.UnidadeSistema.Metrico)
-            return $"{heightMeters:F2}m";
-        var (feet, inches) = MetersToFeetInches(heightMeters);
-        return $"{feet}'{inches}\"";
+            return $"{alturaMetros:F2}m";
+
+        var (pes, polegadas) = MetrosParaPesPolegadas(alturaMetros);
+        return $"{pes}'{polegadas}\"";
     }
-    
-    
-    public static string FormatWeightDifference(float weightKg, Program.UnidadeSistema sistema)
+
+    // Formata a diferença de peso
+    public static string FormatarDiferencaPeso(float pesoKg, Program.UnidadeSistema sistema)
     {
         return sistema == Program.UnidadeSistema.Metrico
-            ? $"{weightKg:F1} kg"
-            : $"{KgToLbs(weightKg):F1} lbs";
+            ? $"{pesoKg:F1} kg"
+            : $"{KgParaLbs(pesoKg):F1} lbs";
     }
 }

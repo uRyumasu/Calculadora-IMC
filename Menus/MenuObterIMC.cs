@@ -5,11 +5,11 @@ using Spectre.Console.Rendering;
 
 namespace CalculadoraIMC.Menus;
 
+// Mostra o menu para obter o imc
 public static class MenuObterIMC
 {
-    public static void Mostrar(Program.Pessoa pessoa)
-    {
-        var star = @"
+    // Desenho ascii de uma estrela
+    private const string ESTRELA = @"
        .
       /O\
 'oooooOOOooooo'
@@ -17,78 +17,92 @@ public static class MenuObterIMC
     OOO'OOO
    O'     'O";
 
-        var content = new List<IRenderable>();
-
-        var usarPercentil = PercentilIMC.DeveUsarPercentil(pessoa);
+    // Mostra o IMC calculado com visualização de estrelas
+    public static void Mostrar(Program.Pessoa pessoa)
+    {
+        var conteudo = new List<IRenderable>();
+        bool usarPercentil = PercentilIMC.DeveUsarPercentil(pessoa);
         
-        var imc = Helpers.CalcularIMC(pessoa.peso, pessoa.altura);
-        var displayValue = imc;
+        float imc = CalcIMC.Calcular(pessoa.Peso, pessoa.Altura);
+        float valorExibir = imc;
         
+        // Se for criança/adolescente, usa percentil em vez de IMC
         if (usarPercentil)
         {
             var (percentil, _) = PercentilIMC.CalcularPercentil(pessoa, imc);
-            displayValue = (float)percentil;
+            valorExibir = (float)percentil;
         }
 
-        static int starsCount(float value, bool usarPercentil)
-        {
-            if (usarPercentil)
-            {
-                return value switch
-                {
-                    < 3 => 1,      
-                    < 15 => 2,     
-                    < 85 => 5,     
-                    < 97 => 4,     
-                    _ => 2         
-                };
-            }
-            else
-            {
-                return value switch
-                {
-                    < 18.5f => 2,
-                    < 25.0f => 5,
-                    < 30.0f => 4,
-                    < 35.0f => 3,
-                    < 40.0f => 2,
-                    _ => 1
-                };
-            }
-        }
-
+        // Grid com peso e altura
         var gridInfo = new Grid();
-        for (var i = 0; i < 2; i++) gridInfo.AddColumn();
+        for (int i = 0; i < 2; i++) gridInfo.AddColumn();
         gridInfo.AddRow(
-            new FigletText(UnitConverter.FormatWeight(pessoa.peso, pessoa.unidadeSistema)).Centered().Color(Tema.Atual.Peso),
-            new FigletText(UnitConverter.FormatHeight(pessoa.altura, pessoa.unidadeSistema)).Centered().Color(Tema.Atual.Altura)
+            new FigletText(UnitConverter.FormatarPeso(pessoa.Peso, pessoa.UnidadeSistema))
+                .Centered().Color(Tema.Atual.Peso),
+            new FigletText(UnitConverter.FormatarAltura(pessoa.Altura, pessoa.UnidadeSistema))
+                .Centered().Color(Tema.Atual.Altura)
         );
-        content.Add(new Panel(gridInfo).RoundedBorder().BorderColor(Tema.Atual.Borda));
+        conteudo.Add(new Panel(gridInfo).RoundedBorder().BorderColor(Tema.Atual.Borda));
 
-        Helpers.CentrarVert(content, 13);
+        HelpersUI.CentrarVertical(conteudo, Constantes.OFFSET_VERTICAL_MINIMO);
 
-        content.Add(new FigletText($"{displayValue:f2}").Centered().Color(Helpers.IMCtoColor(imc)));
+        // Valor principal (IMC ou percentil)
+        conteudo.Add(new FigletText($"{valorExibir:f2}")
+            .Centered()
+            .Color(CalcIMC.ObterCor(imc)));
 
-        Helpers.CentrarVert(content, 13);
+        HelpersUI.CentrarVertical(conteudo, Constantes.OFFSET_VERTICAL_MINIMO);
 
+        // Estrelas de avaliação
         var grid = new Grid();
-        for (var i = 0; i < 5; i++) grid.AddColumn();
+        for (int i = 0; i < 5; i++) grid.AddColumn();
 
-        var starRow = new string[5];
-        var starColor = Helpers.IMCtoColor(imc);
-        for (var i = 0; i < 5; i++)
+        int numEstrelas = CalcularNumeroEstrelas(valorExibir, usarPercentil);
+        var corEstrela = CalcIMC.ObterCor(imc);
+        
+        var linhaEstrelas = new string[5];
+        for (int i = 0; i < 5; i++)
         {
-            var color = i < starsCount(displayValue, usarPercentil) ? starColor.ToMarkup() : "grey";
-            starRow[i] = $"[{color}]{star}[/]";
+            string cor = i < numEstrelas ? corEstrela.ToMarkup() : "grey";
+            linhaEstrelas[i] = $"[{cor}]{ESTRELA}[/]";
         }
 
-        grid.AddRow(starRow[0], starRow[1], starRow[2], starRow[3], starRow[4]);
+        grid.AddRow(linhaEstrelas[0], linhaEstrelas[1], linhaEstrelas[2], 
+                    linhaEstrelas[3], linhaEstrelas[4]);
 
-        content.Add(Align.Center(grid));
+        conteudo.Add(Align.Center(grid));
         
-        if (usarPercentil) Helpers.Render(content, "Obter IMC (Percentil)");
-        else Helpers.Render(content, "Obter IMC");
+        string titulo = usarPercentil ? "Obter IMC (Percentil)" : "Obter IMC";
+        HelpersUI.Render(conteudo, titulo);
         
         Console.ReadKey(true);
+    }
+
+    // Calcula quantas estrelas mostrar baseado no IMC/percentil
+    private static int CalcularNumeroEstrelas(float valor, bool usarPercentil)
+    {
+        if (usarPercentil)
+        {
+            return valor switch
+            {
+                < (float)Constantes.PERCENTIL_MAGREZA => 1, // 1 estrela
+                < (float)Constantes.PERCENTIL_ABAIXO => 2, // 2 estrela
+                < (float)Constantes.PERCENTIL_NORMAL => 5, // 5 estrela
+                < (float)Constantes.PERCENTIL_SOBREPESO => 4, // 4 estrela
+                _ => 2
+            };
+        }
+        else
+        {
+            return valor switch
+            {
+                < Constantes.IMC_MAGREZA => 2, // 2 estrela
+                < Constantes.IMC_NORMAL => 5, // 5 estrela
+                < Constantes.IMC_SOBREPESO => 4, // 4 estrela
+                < Constantes.IMC_OBESIDADE_I => 3, // 3 estrela
+                < Constantes.IMC_OBESIDADE_II => 2, // 2 estrela
+                _ => 1
+            };
+        }
     }
 }

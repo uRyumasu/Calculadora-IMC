@@ -2,11 +2,16 @@
 
 namespace CalculadoraIMC.UI;
 
+// Cores de cada tema
 public class Cores
 {
     public string Nome { get; set; }
+    
+    // Cores para medições
     public Color Peso { get; set; }
     public Color Altura { get; set; }
+    
+    // Cores para categorias de IMC
     public Color Magreza { get; set; }
     public Color Normal { get; set; }
     public Color Sobrepeso { get; set; }
@@ -14,6 +19,7 @@ public class Cores
     public Color ObesidadeII { get; set; }
     public Color ObesidadeIII { get; set; }
 
+    // Cores da interface
     public Color Titulo { get; set; }
     public Color Cabecalho { get; set; }
     public Color Borda { get; set; }
@@ -21,8 +27,11 @@ public class Cores
     public Color Texto { get; set; }
 }
 
+// Temas
 public static class Tema
 {
+    // ========== Temas Predefinidos ==========
+    
     public static readonly Cores Default = new()
     {
         Nome = "Default",
@@ -383,11 +392,16 @@ public static class Tema
         Texto = Color.SpringGreen2
     };
 
+    // ========== Gestão de Temas ==========
+    
+    // Tema Atual
     public static Cores Atual { get; set; } = Default;
     
+    // Dicionário para lookup rápido de temas por nome
     private static readonly Dictionary<string, Cores> _mapaTemas = 
         Todos.ToDictionary(t => t.Nome, t => t);
 
+    // Todos os temas disponiveis
     public static List<Cores> Todos => new()
     {
         Default, Oceano, Floresta, Noturno, PorDoSol, Neon, Matrix, Dracula,
@@ -395,6 +409,7 @@ public static class Tema
         Deserto, Menta, Vampiro, Tropical
     };
     
+    // Encontrar tema pelo nome (se não encontrar usa o tema Default)
     public static Cores ObterPorNome(string nome)
     {
         if (string.IsNullOrEmpty(nome)) return Default;

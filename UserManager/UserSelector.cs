@@ -5,25 +5,27 @@ using Spectre.Console.Rendering;
 
 namespace CalculadoraIMC.UserManager;
 
-
+// Menu para selecionar um utilizador existente
 public static class UserSelector
 {
+    // Mostra lista de utilizadores e permite selecionar um
     public static Program.Pessoa? SelecionarUtilizador()
     {
-        var usuarios = UserDataManager.LoadAllUsers();
-        var selectedIndex = 0;
-        var running = true;
-        Program.Pessoa? result = null;
+        var utilizadores = UserDataManager.LoadAllUsers();
+        var indiceSelecionado = 0;
+        var emExecucao = true;
+        Program.Pessoa? resultado = null;
 
-        while (running)
+        while (emExecucao)
         {
-            var content = new List<IRenderable>();
+            var conteudo = new List<IRenderable>();
             
-            if (usuarios.Count == 0)
+            // Se não existem utilizadores, mostra mensagem
+            if (utilizadores.Count == 0)
             {
                 Tema.Atual = Tema.Default;
                 
-                content.Add(new Align(new Panel(
+                conteudo.Add(new Align(new Panel(
                     new Markup(
                         $"[{Tema.Atual.Cabecalho.ToMarkup()} bold]Nenhum utilizador encontrado[/]\n\n" +
                         $"[{Tema.Atual.Texto}]Pressione ENTER para criar um novo utilizador[/]\n" +
@@ -31,94 +33,92 @@ public static class UserSelector
                     ).Centered()
                 ).RoundedBorder().BorderColor(Tema.Atual.Borda), HorizontalAlignment.Center, VerticalAlignment.Middle));
 
-                Helpers.Render(content, "Selecionar Utilizador");
+                HelpersUI.Render(conteudo, "Selecionar Utilizador");
 
-                var key = Console.ReadKey(true).Key;
-                if (key == ConsoleKey.Enter)
+                var tecla = Console.ReadKey(true).Key;
+                if (tecla == ConsoleKey.Enter)
                 {
-                    var novoUser = UserCreationWizard.CriarPessoa();
-                    if (novoUser != null)
+                    var novoUtilizador = UserCreationWizard.CriarPessoa();
+                    if (novoUtilizador != null)
                     {
-                        result = novoUser;
-                        running = false;
+                        resultado = novoUtilizador;
+                        emExecucao = false;
                     }
                 }
-                else if (key == ConsoleKey.Escape)
+                else if (tecla == ConsoleKey.Escape)
                 {
-                    running = false;
+                    emExecucao = false;
                 }
 
                 continue;
             }
 
-            
-            content.Add(new Text(""));
-            content.Add(new Text(""));
-            var title = new FigletText("Utilizadores")
+            // Mostra título
+            conteudo.Add(new Text(""));
+            conteudo.Add(new Text(""));
+            var titulo = new FigletText("Utilizadores")
                 .Color(Tema.Atual.Titulo)
                 .Centered();
-            content.Add(title);
+            conteudo.Add(titulo);
 
-            
-            var panelContent = new List<IRenderable>();
+            // Cria painel com lista de utilizadores
+            var conteudoPainel = new List<IRenderable>();
 
-            
-            foreach (var (user, i) in usuarios.Select((u, idx) => (u, idx)))
+            foreach (var (utilizador, i) in utilizadores.Select((u, idx) => (u, idx)))
             {
-                var isSelected = i == selectedIndex;
+                var selecionado = i == indiceSelecionado;
     
-                
-                var nomeColor = user.sexo == Program.Sexo.Masculino ? Color.Blue : Color.Pink1;
+                // Cor baseada no sexo
+                var corNome = utilizador.Sexo == Program.Sexo.Masculino ? Color.Blue : Color.Pink1;
     
-                
-                var userInfo = new List<string>();
+                var infoUtilizador = new List<string>();
     
-                
-                var nome = isSelected
-                    ? $"[bold {nomeColor.ToMarkup()}]{user.nome}[/]"
-                    : $"[{nomeColor.ToMarkup()}]{user.nome}[/]";
-                userInfo.Add(nome);
+                // Nome do utilizador
+                var nome = selecionado
+                    ? $"[bold {corNome.ToMarkup()}]{utilizador.Nome}[/]"
+                    : $"[{corNome.ToMarkup()}]{utilizador.Nome}[/]";
+                infoUtilizador.Add(nome);
     
-                
-                if (user.dataNascimento != default)
+                // Idade
+                if (utilizador.DataNascimento != default)
                 {
-                    userInfo.Add($"[dim]{user.Idade}a[/]");
+                    infoUtilizador.Add($"[dim]{utilizador.Idade}a[/]");
                 }
     
-                
-                if (user.peso > 0 && user.altura > 0)
+                // IMC
+                if (utilizador.Peso > 0 && utilizador.Altura > 0)
                 {
-                    var bmival = UnitConverter.CalculateBMI(user.peso, user.altura);
-                    var bmiColor = Helpers.IMCtoColor(bmival);
-                    userInfo.Add($"[{bmiColor.ToMarkup()}]{bmival:F1}[/]");
+                    var imc = CalcIMC.Calcular(utilizador.Peso, utilizador.Altura);
+                    var corIMC = CalcIMC.ObterCor(imc);
+                    infoUtilizador.Add($"[{corIMC.ToMarkup()}]{imc:F1}[/]");
                 }
 
-                var userLine = string.Join(" [dim]•[/] ", userInfo);
+                var linhaUtilizador = string.Join(" [dim]•[/] ", infoUtilizador);
     
-                
-                if (isSelected)
+                // Adiciona seta se selecionado
+                if (selecionado)
                 {
-                    userLine = $"[{Tema.Atual.Cabecalho.ToMarkup()}]►[/] " + userLine;
+                    linhaUtilizador = $"[{Tema.Atual.Cabecalho.ToMarkup()}]►[/] " + linhaUtilizador;
                 }
                 else
                 {
-                    userLine = "  " + userLine;
+                    linhaUtilizador = "  " + linhaUtilizador;
                 }
 
-                panelContent.Add(new Markup(userLine).Centered());
+                conteudoPainel.Add(new Markup(linhaUtilizador).Centered());
             }
 
-            
-            var mainPanel = new Panel(new Rows(panelContent))
+            // Painel principal
+            var painelPrincipal = new Panel(new Rows(conteudoPainel))
                 .Padding(4, 2)
                 .RoundedBorder()
                 .BorderColor(Tema.Atual.Borda);
 
-            content.Add(Align.Center(mainPanel));
+            conteudo.Add(Align.Center(painelPrincipal));
             
-            
-            content.Add(new Text("\n\n"));
-            content.Add(new Markup(
+            // Instruções
+            conteudo.Add(new Text("\n\n"));
+            conteudo.Add(new Markup(
                 $"[{Tema.Atual.Cabecalho.ToMarkup()}]↑↓[/] Navegar  " +
                 $"[{Tema.Atual.Normal.ToMarkup()}]ENTER[/] Selecionar  " +
                 $"[{Tema.Atual.Normal.ToMarkup()}]N[/] Novo  " +
@@ -126,71 +126,68 @@ public static class UserSelector
                 $"[dim]ESC Voltar[/]"
             ).Centered());
 
-            Helpers.Render(content, "Selecionar Utilizador");
+            HelpersUI.Render(conteudo, "Selecionar Utilizador");
 
-            
-            var keyPressed = Console.ReadKey(true);
+            // Processa input
+            var teclaPressionada = Console.ReadKey(true);
 
-            switch (keyPressed.Key)
+            switch (teclaPressionada.Key)
             {
                 case ConsoleKey.UpArrow:
-                    selectedIndex = (selectedIndex - 1 + usuarios.Count) % usuarios.Count;
+                    indiceSelecionado = (indiceSelecionado - 1 + utilizadores.Count) % utilizadores.Count;
                     break;
 
                 case ConsoleKey.DownArrow:
-                    selectedIndex = (selectedIndex + 1) % usuarios.Count;
+                    indiceSelecionado = (indiceSelecionado + 1) % utilizadores.Count;
                     break;
 
                 case ConsoleKey.Enter:
-                    
-                    result = usuarios[selectedIndex];
-                    UserDataManager.SaveCurrentUser(result.nome);
-                    Helpers.MostrarMensagem($"Utilizador '{result.nome}' carregado!", Tema.Atual.Normal);
-                    running = false;
+                    // Seleciona utilizador
+                    resultado = utilizadores[indiceSelecionado];
+                    UserDataManager.SaveCurrentUser(resultado.Nome);
+                    HelpersUI.MostrarMensagem($"Utilizador '{resultado.Nome}' carregado!", Tema.Atual.Normal);
+                    emExecucao = false;
                     break;
 
                 case ConsoleKey.N:
-                    
-                    var novoUsuario = UserCreationWizard.CriarPessoa();
-                    if (novoUsuario != null)
+                    // Cria novo utilizador
+                    var novoUtilizador = UserCreationWizard.CriarPessoa();
+                    if (novoUtilizador != null)
                     {
-                        usuarios = UserDataManager.LoadAllUsers(); 
-                        selectedIndex = usuarios.FindIndex(u => u.nome == novoUsuario.nome);
-                        if (selectedIndex < 0) selectedIndex = 0;
+                        utilizadores = UserDataManager.LoadAllUsers(); 
+                        indiceSelecionado = utilizadores.FindIndex(u => u.Nome == novoUtilizador.Nome);
+                        if (indiceSelecionado < 0) indiceSelecionado = 0;
                     }
-
                     break;
 
                 case ConsoleKey.Delete:
-                    
-                    if (usuarios.Count > 0)
+                    // Apaga utilizador
+                    if (utilizadores.Count > 0)
                     {
-                        var userToDelete = usuarios[selectedIndex];
-                        if (Helpers.ConfirmarAcao($"Tem certeza que deseja apagar '{userToDelete.nome}'?"))
+                        var utilizadorApagar = utilizadores[indiceSelecionado];
+                        if (HelpersUI.ConfirmarAcao($"Tem certeza que deseja apagar '{utilizadorApagar.Nome}'?"))
                         {
-                            if (UserDataManager.DeleteUser(userToDelete.nome))
+                            if (UserDataManager.DeleteUser(utilizadorApagar.Nome))
                             {
-                                
-                                Helpers.MostrarMensagem($"Utilizador '{userToDelete.nome}' apagado!", Color.Red);
-                                usuarios = UserDataManager.LoadAllUsers();
-                                if (selectedIndex >= usuarios.Count)
-                                    selectedIndex = Math.Max(0, usuarios.Count - 1);
+                                HelpersUI.MostrarMensagem($"Utilizador '{utilizadorApagar.Nome}' apagado!", Color.Red);
+                                utilizadores = UserDataManager.LoadAllUsers();
+                                if (indiceSelecionado >= utilizadores.Count)
+                                    indiceSelecionado = Math.Max(0, utilizadores.Count - 1);
                             }
                             else
                             {
-                                Helpers.MostrarMensagem("Erro ao apagar utilizador!", Color.Red);
+                                HelpersUI.MostrarMensagem("Erro ao apagar utilizador!", Color.Red);
                             }
                         }
                     }
-
                     break;
 
                 case ConsoleKey.Escape:
-                    running = false;
+                    emExecucao = false;
                     break;
             }
         }
 
-        return result;
+        return resultado;
     }
 }

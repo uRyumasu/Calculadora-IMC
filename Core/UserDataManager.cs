@@ -3,46 +3,58 @@ using System.Text.Json.Serialization;
 
 namespace CalculadoraIMC.Core;
 
+// Gere o armazenamento e carregamento de dados dos utilizadores
 public static class UserDataManager
 {
-    private static readonly string DataDirectory = Path.Combine(
+    // Appdata/CalculadoraIMC
+    private static readonly string DiretorioDados = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-        "IMC_Calculator"
+        "CalculadoraIMC"
     );
 
-    private static readonly string UsersFilePath = Path.Combine(DataDirectory, "users.json");
-    private static readonly string CurrentUserFilePath = Path.Combine(DataDirectory, "current_user.txt");
+    // Ficheiro que contem todos os utilizadores
+    private static readonly string CaminhoFicheiroUsers = Path.Combine(DiretorioDados, "users.json");
+    
+    // Ficheiro que contem o utilizador atual
+    private static readonly string CaminhoUserAtual = Path.Combine(DiretorioDados, "current_user.txt");
 
+    // Criar a directory CalculadoraIMC se esta não existe
     static UserDataManager()
     {
-        if (!Directory.Exists(DataDirectory))
-            Directory.CreateDirectory(DataDirectory);
+        if (!Directory.Exists(DiretorioDados))
+            Directory.CreateDirectory(DiretorioDados);
     }
 
+    // Guarda os dados de um utilizador
     public static bool SaveUser(Program.Pessoa pessoa)
     {
         try
         {
-            if (string.IsNullOrEmpty(pessoa.nome))
+            // Verificar se utilizador não é vazio
+            if (string.IsNullOrEmpty(pessoa.Nome))
                 return false;
 
-            var users = LoadAllUsers();
-            var existingIndex = users.FindIndex(u =>
-                !string.IsNullOrEmpty(u.nome) && 
-                u.nome.Equals(pessoa.nome, StringComparison.OrdinalIgnoreCase));
+            // Carregar utilizadores
+            var utilizadores = LoadAllUsers();
+            
+            // Encontrar se utilizador existe
+            int indiceExistente = utilizadores.FindIndex(u =>
+                !string.IsNullOrEmpty(u.Nome) && 
+                u.Nome.Equals(pessoa.Nome, StringComparison.OrdinalIgnoreCase));
+            
+            if (indiceExistente >= 0) // Se o utilizador existe
+                utilizadores[indiceExistente] = pessoa; // Substituir informação atual.
+            else // Senao
+                utilizadores.Add(pessoa); // Criar um utilizador novo
 
-            if (existingIndex >= 0)
-                users[existingIndex] = pessoa;
-            else
-                users.Add(pessoa);
-
-            var json = JsonSerializer.Serialize(users, new JsonSerializerOptions
+            // Converter em JSON
+            string json = JsonSerializer.Serialize(utilizadores, new JsonSerializerOptions
             {
                 WriteIndented = true,
                 Converters = { new JsonStringEnumConverter() }
             });
 
-            File.WriteAllText(UsersFilePath, json);
+            File.WriteAllText(CaminhoFicheiroUsers, json);
             return true;
         }
         catch
@@ -51,24 +63,29 @@ public static class UserDataManager
         }
     }
 
+    // Carrega todos os utilizadores guardados
     public static List<Program.Pessoa> LoadAllUsers()
     {
         try
         {
-            if (!File.Exists(UsersFilePath))
+            // Se ficheiro com todos os utilizadores existir
+            if (!File.Exists(CaminhoFicheiroUsers))
                 return new List<Program.Pessoa>();
 
-            var json = File.ReadAllText(UsersFilePath);
+            // Ler e criar uma lista com todos os utilizadores
+            string json = File.ReadAllText(CaminhoFicheiroUsers);
             if (string.IsNullOrWhiteSpace(json))
                 return new List<Program.Pessoa>();
 
-            var users = JsonSerializer.Deserialize<List<Program.Pessoa>>(json, new JsonSerializerOptions
-            {
-                Converters = { new JsonStringEnumConverter() }
-            }) ?? new List<Program.Pessoa>();
+            // Converter JSON em uma lista C#
+            var utilizadores = JsonSerializer.Deserialize<List<Program.Pessoa>>(json, 
+                new JsonSerializerOptions
+                {
+                    Converters = { new JsonStringEnumConverter() }
+                }) ?? new List<Program.Pessoa>();
 
-            
-            return users.Where(u => !string.IsNullOrEmpty(u.nome)).ToList();
+            // Filtra utilizadores com nome válido
+            return utilizadores.Where(u => !string.IsNullOrEmpty(u.Nome)).ToList();
         }
         catch
         {
@@ -76,47 +93,55 @@ public static class UserDataManager
         }
     }
 
+    // Carrega um utilizador específico pelo nome
     public static Program.Pessoa? LoadUser(string nome)
     {
+        // Se utilizador existe
         if (string.IsNullOrEmpty(nome))
             return null;
-    
-        var users = LoadAllUsers();
-        return users.FirstOrDefault(u =>
-            !string.IsNullOrEmpty(u.nome) && 
-            u.nome.Equals(nome, StringComparison.OrdinalIgnoreCase));
+        
+        // Carregar utilizador
+        var utilizadores = LoadAllUsers();
+        return utilizadores.FirstOrDefault(u =>
+            !string.IsNullOrEmpty(u.Nome) && 
+            u.Nome.Equals(nome, StringComparison.OrdinalIgnoreCase));
     }
 
+    // Apaga um utilizador
     public static bool DeleteUser(string nome)
     {
         try
         {
+            // Se utilizador existe
             if (string.IsNullOrEmpty(nome))
                 return false;
 
-            var users = LoadAllUsers();
-            var removed = users.RemoveAll(u =>
-                !string.IsNullOrEmpty(u.nome) && 
-                u.nome.Equals(nome, StringComparison.OrdinalIgnoreCase));
+            // Tentar apagar utilizador
+            var utilizadores = LoadAllUsers();
+            int removidos = utilizadores.RemoveAll(u =>
+                !string.IsNullOrEmpty(u.Nome) && 
+                u.Nome.Equals(nome, StringComparison.OrdinalIgnoreCase));
 
-            if (removed > 0)
+            // Se algum utilizador foi removido
+            if (removidos > 0)
             {
-                var json = JsonSerializer.Serialize(users, new JsonSerializerOptions
+                // Converter para JSON
+                string json = JsonSerializer.Serialize(utilizadores, new JsonSerializerOptions
                 {
                     WriteIndented = true,
                     Converters = { new JsonStringEnumConverter() }
                 });
 
-                File.WriteAllText(UsersFilePath, json);
+                File.WriteAllText(CaminhoFicheiroUsers, json);
 
-                
-                if (File.Exists(CurrentUserFilePath))
+                // Remove o ficheiro de utilizador atual se for este
+                if (File.Exists(CaminhoUserAtual))
                 {
-                    var currentUser = File.ReadAllText(CurrentUserFilePath).Trim();
-                    if (!string.IsNullOrEmpty(currentUser) && 
-                        currentUser.Equals(nome, StringComparison.OrdinalIgnoreCase))
+                    string userAtual = File.ReadAllText(CaminhoUserAtual).Trim();
+                    if (!string.IsNullOrEmpty(userAtual) && 
+                        userAtual.Equals(nome, StringComparison.OrdinalIgnoreCase))
                     {
-                        File.Delete(CurrentUserFilePath);
+                        File.Delete(CaminhoUserAtual);
                     }
                 }
 
@@ -131,15 +156,17 @@ public static class UserDataManager
         }
     }
 
+    // Guarda o nome do utilizador atual
     public static void SaveCurrentUser(string nome)
     {
         try
         {
             if (!string.IsNullOrEmpty(nome))
-                File.WriteAllText(CurrentUserFilePath, nome);
+                File.WriteAllText(CaminhoUserAtual, nome);
         }
         catch
         {
+            // Falha silenciosa
         }
     }
 }

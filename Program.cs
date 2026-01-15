@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Diagnostics;
+using System.Text;
 using CalculadoraIMC.Core;
 using CalculadoraIMC.Menus;
 using CalculadoraIMC.UI;
@@ -8,6 +9,7 @@ namespace CalculadoraIMC;
 
 public class Program
 {
+    // Níveis de atividade física do utilizador
     public enum NivelAtividade
     {
         Sedentario,
@@ -17,6 +19,7 @@ public class Program
         MuitoAtivo
     }
 
+    // Objetivos do utilizador (perda, ganho, manutenção)
     public enum Objetivo
     {
         PerderPeso,
@@ -26,6 +29,7 @@ public class Program
         Recomposicao
     }
 
+    // Sexo do utilizador
     public enum Sexo
     {
         NaoDefinido,
@@ -33,6 +37,7 @@ public class Program
         Feminino
     }
 
+    // Sistema de unidades (métrico ou imperial)
     public enum UnidadeSistema
     {
         Metrico,
@@ -43,76 +48,69 @@ public class Program
 
     private static void Main(string[] args)
     {
-        Console.OutputEncoding = Encoding.UTF8;
-        Console.CursorVisible = false;
-
-        // Optional: Show splash screen
-        // SplashScreen.Show("path/to/image.png");
-
-        pessoa = MenuLogin.Pedir();
-        
-        char opcao;
-        do
+        try
         {
-            MenuPrincipal.Mostrar(pessoa);
-            opcao = Console.ReadKey(true).KeyChar;
+            Console.OutputEncoding = Encoding.UTF8;
+            Console.CursorVisible = false;
+        
+            ImageDownloader.Download("https://i.ibb.co/CKV6qzT8/image.png", "./splash.png");
 
-            switch (opcao)
+            pessoa = MenuLogin.Pedir();
+        
+            char opcao;
+            do
             {
-                case '1': MenuDefinirDados.Mostrar(pessoa); break;
-                case '2': MenuObterIMC.Mostrar(pessoa); break;
-                case '3': MenuStatusIMC.Mostrar(pessoa); break;
-                case '7': MenuTemas.Mostrar(pessoa); break;
-                case '8': Tema.Atual = Tema.Default ;pessoa = MenuLogin.Pedir(); break;
-                
-            }
-        } while (opcao != '9');
+                MenuPrincipal.Mostrar(pessoa);
+                opcao = Console.ReadKey(true).KeyChar;
 
-        // Optional: Show splash screen on exit
-        // SplashScreen.Show("path/to/image.png");
-        Console.Clear();
+                switch (opcao)
+                {
+                    case '1': MenuDefinirDados.Mostrar(pessoa); break;
+                    case '2': MenuObterIMC.Mostrar(pessoa); break;
+                    case '3': MenuStatusIMC.Mostrar(pessoa); break;
+                    case '7': MenuTemas.Mostrar(pessoa); break;
+                    case '8': 
+                        Tema.Atual = Tema.Default;
+                        pessoa = MenuLogin.Pedir(); 
+                        break;
+                }
+            } while (opcao != '9');
+            Console.Clear();
+        }
+        finally
+        {
+            // Ao fechar, executa splash no cmd.exe
+            Splash.ExecutarSplashNoCmd();
+        }
     }
 
+    // Representa os dados de uma pessoa/utilizador
     public class Pessoa
     {
-        public string nome { get; set; }
-        public float altura { get; set; } = 1.5f;
-        public DateTime dataNascimento { get; set; }
-        public Sexo sexo { get; set; } = Sexo.NaoDefinido;
-        public NivelAtividade nivelAtividade { get; set; }
-        public UnidadeSistema unidadeSistema { get; set; }
-        public Objetivo objetivo { get; set; }
-
-        public int Idade => DateTime.Now.Year - dataNascimento.Year;
-        public float pesoDesejado { get; set; }
+        public string Nome { get; set; }
+        public float Altura { get; set; } = 1.5f;
+        public DateTime DataNascimento { get; set; }
+        public Sexo Sexo { get; set; } = Sexo.NaoDefinido;
+        public NivelAtividade NivelAtividade { get; set; }
+        public UnidadeSistema UnidadeSistema { get; set; }
+        public Objetivo Objetivo { get; set; }
+        public float PesoDesejado { get; set; }
         public string NomeTema { get; set; } = "Default";
-        
-        
-        private float _pesoInicial;
-        private float _peso;
-        private bool _pesoFoiAlterado = false;
-        public float pesoInicial 
-        { 
-            get => _pesoInicial;
-            set 
-            {
-                _pesoInicial = value;
-                // Only sync to current peso if it hasn't been modified by the user/app yet
-                if (!_pesoFoiAlterado)
-                {
-                    _peso = value;
-                }
-            }
-        }
 
-        public float peso 
-        { 
-            get => _peso;
-            set 
-            {
-                _peso = value;
-                _pesoFoiAlterado = true; // Once this is true, pesoInicial stops syncing
-            }
+        // Calcula a idade a partir da data de nascimento
+        public int Idade => DateTime.Now.Year - DataNascimento.Year;
+
+        // Peso inicial (quando a pessoa foi criada/registada)
+        public float PesoInicial { get; set; }
+
+        // Peso atual da pessoa
+        public float Peso { get; set; }
+
+        // Construtor padrão - inicializa com valores base
+        public Pessoa()
+        {
+            Peso = 60;
+            PesoInicial = 60;
         }
     }
 }

@@ -5,96 +5,101 @@ using Spectre.Console.Rendering;
 
 namespace CalculadoraIMC.Menus;
 
+// Menu para definir/editar peso e altura do utilizador
 public static class MenuDefinirDados
 {
+    // Mostra o menu principal de definição de dados
     public static void Mostrar(Program.Pessoa pessoa)
     {
-        var running = true;
-        while (running)
+        var emExecucao = true;
+        while (emExecucao)
         {
-            var content = new List<IRenderable>();
+            var conteudo = new List<IRenderable>();
 
-            Helpers.CentrarVert(content);
+            HelpersUI.CentrarVertical(conteudo);
             var grid = new Grid();
             grid.AddColumn();
             grid.AddColumn();
             grid.AddRow(
-                new FigletText(UnitConverter.FormatWeight(pessoa.peso, pessoa.unidadeSistema).PadLeft(8)).Color(Tema.Atual.Peso).LeftJustified(),
-                new FigletText(UnitConverter.FormatHeight(pessoa.altura, pessoa.unidadeSistema).PadRight(8)).Color(Tema.Atual.Altura).RightJustified()
+                new FigletText(UnitConverter.FormatarPeso(pessoa.Peso, pessoa.UnidadeSistema).PadLeft(8))
+                    .Color(Tema.Atual.Peso).LeftJustified(),
+                new FigletText(UnitConverter.FormatarAltura(pessoa.Altura, pessoa.UnidadeSistema).PadRight(8))
+                    .Color(Tema.Atual.Altura).RightJustified()
             );
             grid.AddRow(
                 new Markup($"[{Tema.Atual.Fundo.ToMarkup()}](1)[/]").Centered(),
                 new Markup($"[{Tema.Atual.Fundo.ToMarkup()}](2)[/]").Centered()
             );
 
-            content.Add(grid);
+            conteudo.Add(grid);
 
-            Helpers.CentrarVert(content, 10);
-            content.Add(
+            HelpersUI.CentrarVertical(conteudo, Constantes.OFFSET_VERTICAL_MEDIO);
+            conteudo.Add(
                 new Markup(
                         $"\n[dim]Pressione [{Tema.Atual.Cabecalho.ToMarkup()}]1[/] ou [{Tema.Atual.Cabecalho.ToMarkup()}]2[/] para editar[/]")
                     .Centered());
-            content.Add(new Markup("[dim]Pressione ENTER para voltar ao menu[/]").Centered());
+            conteudo.Add(new Markup("[dim]Pressione ENTER para voltar ao menu[/]").Centered());
 
-            Helpers.Render(content, "Definir Dados");
+            HelpersUI.Render(conteudo, "Definir Dados");
 
             var opcao = Console.ReadKey(true);
-
             bool dadosAlterados = false;
 
             switch (opcao.KeyChar)
             {
                 case '1': 
                     var novoPeso = EditarPeso(pessoa);
-                    if (novoPeso != pessoa.peso)
+                    if (novoPeso != pessoa.Peso)
                     {
-                        pessoa.peso = novoPeso;
+                        pessoa.Peso = novoPeso;
                         dadosAlterados = true;
                     }
                     break;
                 case '2': 
                     var novaAltura = EditarAltura(pessoa);
-                    if (novaAltura != pessoa.altura)
+                    if (novaAltura != pessoa.Altura)
                     {
-                        pessoa.altura = novaAltura;
+                        pessoa.Altura = novaAltura;
                         dadosAlterados = true;
                     }
                     break;
             }
 
-            
+            // Guarda os dados se foram alterados
             if (dadosAlterados)
             {
                 if (UserDataManager.SaveUser(pessoa))
                 {
-                    Helpers.MostrarMensagem("Dados guardados com sucesso!", Color.Green);
+                    HelpersUI.MostrarMensagem("Dados guardados com sucesso!", Color.Green);
                 }
                 else
                 {
-                    Helpers.MostrarMensagem("Erro ao guardar dados!", Color.Red);
+                    HelpersUI.MostrarMensagem("Erro ao guardar dados!", Color.Red);
                 }
-                running = false; 
+                emExecucao = false; 
             }
 
-            if (opcao.Key == ConsoleKey.Enter) running = false;
+            if (opcao.Key == ConsoleKey.Enter) emExecucao = false;
         }
     }
 
+    // Editar a altura do utilizador
     private static float EditarAltura(Program.Pessoa pessoa)
     {
         var selecionando = true;
-        var altura = pessoa.altura;
+        var altura = pessoa.Altura;
 
         while (selecionando)
         {
-            var content = new List<IRenderable>();
-            Helpers.CentrarVert(content);
-            content.Add(new FigletText(UnitConverter.FormatHeight(altura, pessoa.unidadeSistema)).Color(Tema.Atual.Altura).Centered());
+            var conteudo = new List<IRenderable>();
+            HelpersUI.CentrarVertical(conteudo);
+            conteudo.Add(new FigletText(UnitConverter.FormatarAltura(altura, pessoa.UnidadeSistema))
+                .Color(Tema.Atual.Altura).Centered());
 
-            string controlosText;
-            if (pessoa.unidadeSistema == Program.UnidadeSistema.Metrico)
+            string textoControlos;
+            if (pessoa.UnidadeSistema == Program.UnidadeSistema.Metrico)
             {
-                controlosText = $"[bold {Tema.Atual.Cabecalho.ToMarkup()}]Controlos:[/]\n\n" +
+                textoControlos = $"[bold {Tema.Atual.Cabecalho.ToMarkup()}]Controlos:[/]\n\n" +
                                 "  [dim]↑[/] Aumentar 10cm\n" +
                                 "  [dim]↓[/] Diminuir 10cm\n" +
                                 " [dim]→[/] Aumentar 1cm\n" +
@@ -103,60 +108,72 @@ public static class MenuDefinirDados
             }
             else
             {
-                controlosText = $"[bold {Tema.Atual.Cabecalho.ToMarkup()}]Controlos:[/]\n\n" +
+                textoControlos = $"[bold {Tema.Atual.Cabecalho.ToMarkup()}]Controlos:[/]\n\n" +
                                 "  [dim]↑[/] Aumentar 1 inch\n" +
                                 "  [dim]↓[/] Diminuir 1 inch\n\n" +
                                 $"[{Tema.Atual.Normal.ToMarkup()}]⏎ Enter[/] para confirmar";
             }
 
-            var controlos = new Panel(new Markup(controlosText).Centered())
+            var controlos = new Panel(new Markup(textoControlos).Centered())
                 .RoundedBorder()
                 .BorderColor(Tema.Atual.Borda);
 
-            content.Add(Align.Center(controlos));
+            conteudo.Add(Align.Center(controlos));
 
-            Helpers.Render(content, "Altura");
+            HelpersUI.Render(conteudo, "Altura");
 
-            var key = Console.ReadKey(true).Key;
+            var tecla = Console.ReadKey(true).Key;
 
-            if (pessoa.unidadeSistema == Program.UnidadeSistema.Metrico)
+            if (pessoa.UnidadeSistema == Program.UnidadeSistema.Metrico)
             {
-                switch (key)
+                switch (tecla)
                 {
-                    case ConsoleKey.UpArrow: altura = Math.Min(altura + 0.1f, 2.5f); break;
-                    case ConsoleKey.DownArrow: altura = Math.Max(altura - 0.1f, 0.5f); break;
-                    case ConsoleKey.RightArrow: altura = Math.Min(altura + 0.01f, 2.5f); break;
-                    case ConsoleKey.LeftArrow: altura = Math.Max(altura - 0.01f, 0.5f); break;
-                    case ConsoleKey.Enter: selecionando = false; break;
+                    case ConsoleKey.UpArrow: 
+                        altura = Math.Min(altura + Constantes.AJUSTE_ALTURA_GRANDE, Constantes.ALTURA_MAXIMA); 
+                        break;
+                    case ConsoleKey.DownArrow: 
+                        altura = Math.Max(altura - Constantes.AJUSTE_ALTURA_GRANDE, Constantes.ALTURA_MINIMA); 
+                        break;
+                    case ConsoleKey.RightArrow: 
+                        altura = Math.Min(altura + Constantes.AJUSTE_ALTURA_PEQUENO, Constantes.ALTURA_MAXIMA); 
+                        break;
+                    case ConsoleKey.LeftArrow: 
+                        altura = Math.Max(altura - Constantes.AJUSTE_ALTURA_PEQUENO, Constantes.ALTURA_MINIMA); 
+                        break;
+                    case ConsoleKey.Enter: 
+                        selecionando = false; 
+                        break;
                 }
             }
             else 
             {
-                var (currentFeet, currentInches) = UnitConverter.MetersToFeetInches(altura);
-                switch (key)
+                var (pesAtual, polegadasAtual) = UnitConverter.MetrosParaPesPolegadas(altura);
+                switch (tecla)
                 {
                     case ConsoleKey.UpArrow: 
-                        currentInches++;
-                        if (currentInches >= 12)
+                        polegadasAtual++;
+                        if (polegadasAtual >= Constantes.POLEGADAS_POR_PE)
                         {
-                            currentFeet++;
-                            currentInches = 0;
+                            pesAtual++;
+                            polegadasAtual = 0;
                         }
-                        altura = UnitConverter.FeetInchesToMeters(currentFeet, currentInches);
-                        altura = Math.Min(altura, 2.5f);
+                        altura = UnitConverter.PesPolegadasParaMetros(pesAtual, polegadasAtual);
+                        altura = Math.Min(altura, Constantes.ALTURA_MAXIMA);
                         break;
                     case ConsoleKey.DownArrow: 
-                        currentInches--;
-                        if (currentInches < 0)
+                        polegadasAtual--;
+                        if (polegadasAtual < 0)
                         {
-                            currentFeet--;
-                            currentInches = 11;
+                            pesAtual--;
+                            polegadasAtual = Constantes.POLEGADAS_POR_PE - 1;
                         }
-                        if (currentFeet < 0) currentFeet = 0;
-                        altura = UnitConverter.FeetInchesToMeters(currentFeet, currentInches);
-                        altura = Math.Max(altura, 0.5f);
+                        if (pesAtual < 0) pesAtual = 0;
+                        altura = UnitConverter.PesPolegadasParaMetros(pesAtual, polegadasAtual);
+                        altura = Math.Max(altura, Constantes.ALTURA_MINIMA);
                         break;
-                    case ConsoleKey.Enter: selecionando = false; break;
+                    case ConsoleKey.Enter: 
+                        selecionando = false; 
+                        break;
                 }
             }
         }
@@ -164,26 +181,32 @@ public static class MenuDefinirDados
         return altura;
     }
 
+    // Editar o peso do utilizador
     private static float EditarPeso(Program.Pessoa pessoa)
     {
         var selecionando = true;
-        var peso = pessoa.peso;
+        var peso = pessoa.Peso;
 
         while (selecionando)
         {
-            var content = new List<IRenderable>();
-            Helpers.CentrarVert(content);
-            content.Add(new FigletText(UnitConverter.FormatWeight(peso, pessoa.unidadeSistema)).Color(Tema.Atual.Peso).Centered());
+            var conteudo = new List<IRenderable>();
+            HelpersUI.CentrarVertical(conteudo);
+            conteudo.Add(new FigletText(UnitConverter.FormatarPeso(peso, pessoa.UnidadeSistema))
+                .Color(Tema.Atual.Peso).Centered());
 
-            string controlosText;
-            float largeIncrement;
-            float smallIncrement;
+            string textoControlos;
+            float ajusteGrande;
+            float ajustePequeno;
+            float pesoMinimo;
+            float pesoMaximo;
             
-            if (pessoa.unidadeSistema == Program.UnidadeSistema.Metrico)
+            if (pessoa.UnidadeSistema == Program.UnidadeSistema.Metrico)
             {
-                largeIncrement = 1f;      
-                smallIncrement = 0.1f;    
-                controlosText = $"[bold {Tema.Atual.Cabecalho.ToMarkup()}]Controlos:[/]\n\n" +
+                ajusteGrande = Constantes.AJUSTE_PESO_GRANDE;
+                ajustePequeno = Constantes.AJUSTE_PESO_PEQUENO;
+                pesoMinimo = Constantes.PESO_MINIMO;
+                pesoMaximo = Constantes.PESO_MAXIMO;
+                textoControlos = $"[bold {Tema.Atual.Cabecalho.ToMarkup()}]Controlos:[/]\n\n" +
                                 "  [dim]↑[/] Aumentar 1kg\n" +
                                 "  [dim]↓[/] Diminuir 1kg\n" +
                                 " [dim]→[/] Aumentar 100g\n" +
@@ -192,33 +215,45 @@ public static class MenuDefinirDados
             }
             else
             {
-                largeIncrement = UnitConverter.LbsToKg(1f);    
-                smallIncrement = UnitConverter.LbsToKg(0.1f);  
-                controlosText = $"[bold {Tema.Atual.Cabecalho.ToMarkup()}]Controlos:[/]\n\n" +
+                ajusteGrande = UnitConverter.LbsParaKg(Constantes.AJUSTE_PESO_GRANDE_LBS);
+                ajustePequeno = UnitConverter.LbsParaKg(Constantes.AJUSTE_PESO_PEQUENO_LBS);
+                pesoMinimo = Constantes.PESO_MINIMO;
+                pesoMaximo = Constantes.PESO_MAXIMO;
+                textoControlos = $"[bold {Tema.Atual.Cabecalho.ToMarkup()}]Controlos:[/]\n\n" +
                                 "  [dim]↑[/] Aumentar 1lb\n" +
                                 "  [dim]↓[/] Diminuir 1lb\n" +
-                                " [dim]→[/] Aumentar 0.1lb\n" +
-                                " [dim]←[/] Diminuir 0.1lb\n\n" +
+                                " [dim]→[/] Aumentar 0.5lb\n" +
+                                " [dim]←[/] Diminuir 0.5lb\n\n" +
                                 $"[{Tema.Atual.Normal.ToMarkup()}]⏎ Enter[/] para confirmar";
             }
 
-            var controlos = new Panel(new Markup(controlosText).Centered())
+            var controlos = new Panel(new Markup(textoControlos).Centered())
                 .RoundedBorder()
                 .BorderColor(Tema.Atual.Borda);
 
-            content.Add(Align.Center(controlos));
+            conteudo.Add(Align.Center(controlos));
 
-            Helpers.Render(content, "Peso");
+            HelpersUI.Render(conteudo, "Peso");
 
-            var key = Console.ReadKey(true).Key;
+            var tecla = Console.ReadKey(true).Key;
 
-            switch (key)
+            switch (tecla)
             {
-                case ConsoleKey.UpArrow: peso = Math.Min(peso + largeIncrement, 300f); break;
-                case ConsoleKey.DownArrow: peso = Math.Max(peso - largeIncrement, 30f); break;
-                case ConsoleKey.RightArrow: peso = Math.Min(peso + smallIncrement, 300f); break;
-                case ConsoleKey.LeftArrow: peso = Math.Max(peso - smallIncrement, 30f); break;
-                case ConsoleKey.Enter: selecionando = false; break;
+                case ConsoleKey.UpArrow: 
+                    peso = Math.Min(peso + ajusteGrande, pesoMaximo); 
+                    break;
+                case ConsoleKey.DownArrow: 
+                    peso = Math.Max(peso - ajusteGrande, pesoMinimo); 
+                    break;
+                case ConsoleKey.RightArrow: 
+                    peso = Math.Min(peso + ajustePequeno, pesoMaximo); 
+                    break;
+                case ConsoleKey.LeftArrow: 
+                    peso = Math.Max(peso - ajustePequeno, pesoMinimo); 
+                    break;
+                case ConsoleKey.Enter: 
+                    selecionando = false; 
+                    break;
             }
         }
 
