@@ -70,8 +70,8 @@ Baixe a última versão na [página de releases](https://github.com/uRyumasu/Cal
 
 ### Compilar do Código-Fonte
 ```bash
-git clone https://github.com/seu-usuario/CalculadoraIMC.git
-cd CalculadoraIMC
+git clone https://github.com/uRyumasu/Calculadora-IMC.git
+cd Calculadora-IMC
 dotnet build
 dotnet run
 ```
