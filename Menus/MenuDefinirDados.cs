@@ -1,5 +1,6 @@
 ﻿using CalculadoraIMC.Core;
 using CalculadoraIMC.UI;
+using Microsoft.VisualBasic.CompilerServices;
 using Spectre.Console;
 using Spectre.Console.Rendering;
 
@@ -66,18 +67,19 @@ public static class MenuDefinirDados
             }
 
             // Guarda os dados se foram alterados
-            if (dadosAlterados)
-            {
-                if (UserDataManager.SaveUser(pessoa))
+            if (!string.IsNullOrEmpty(pessoa.Nome))
+                if (dadosAlterados)
                 {
-                    HelpersUI.MostrarMensagem("Dados guardados com sucesso!", Color.Green);
+                    if (UserDataManager.SaveUser(pessoa))
+                    {
+                        HelpersUI.MostrarMensagem("Dados guardados com sucesso!", Color.Green);
+                    }
+                    else
+                    {
+                        HelpersUI.MostrarMensagem("Erro ao guardar dados!", Color.Red);
+                    }
+                    emExecucao = false; 
                 }
-                else
-                {
-                    HelpersUI.MostrarMensagem("Erro ao guardar dados!", Color.Red);
-                }
-                emExecucao = false; 
-            }
 
             if (opcao.Key == ConsoleKey.Enter) emExecucao = false;
         }

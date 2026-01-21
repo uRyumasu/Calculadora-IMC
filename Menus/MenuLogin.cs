@@ -68,7 +68,7 @@ public class MenuLogin
 
                 case '4':
                     emEscolha = false;
-                    Splash.ExecutarSplashNoCmd();
+                    Splash.Mostrar();
                     Environment.Exit(0);
                     break;
             }

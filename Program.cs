@@ -52,9 +52,7 @@ public class Program
         {
             Console.OutputEncoding = Encoding.UTF8;
             Console.CursorVisible = false;
-        
-            ImageDownloader.Download("https://i.ibb.co/CKV6qzT8/image.png", "./splash.png");
-
+            
             pessoa = MenuLogin.Pedir();
         
             char opcao;
@@ -80,7 +78,7 @@ public class Program
         finally
         {
             // Ao fechar, executa splash no cmd.exe
-            Splash.ExecutarSplashNoCmd();
+            Splash.Mostrar();
         }
     }
 

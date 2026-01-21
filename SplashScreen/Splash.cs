@@ -1,40 +1,34 @@
 using System.Diagnostics;
+using CalculadoraIMC.Core;
+using CalculadoraIMC.UI;
+using Spectre.Console;
+using Spectre.Console.Rendering;
 
 namespace CalculadoraIMC;
 
-public class Splash
+public static class Splash
 {
-    public static void ExecutarSplashNoCmd()
+    // Mostra a tela de saída 
+    public static void Mostrar()
     {
-        try
-        {
-            var splashPath = Path.Combine(
-                AppDomain.CurrentDomain.BaseDirectory, 
-                "SplashScreen.exe"
-            );
-            
-            if (!File.Exists(splashPath))
-            {
-                Console.WriteLine("Splash não encontrado!");
-                return;
-            }
-            
-            // Força execução no cmd.exe clássico
-            var startInfo = new ProcessStartInfo
-            {
-                FileName = "conhost.exe",
-                Arguments = $"\"{splashPath}\"", 
-                UseShellExecute = true, 
-                CreateNoWindow = false, 
-    
-                WindowStyle = ProcessWindowStyle.Normal
-            };
-            
-            Process.Start(startInfo);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Erro ao executar splash: {ex.Message}");
-        }
+        var figletText = new FigletText("Daniel Matseiko")
+            .Centered()
+            .Color(Color.Cyan1);
+
+        var panel = 
+                Align.Center(
+                    new Rows(
+                        figletText,
+                        new Text(""),
+                        new Markup($"[bold {Tema.Atual.Texto}]Nº3 | 10ºH - GPSI[/]"),
+                        new Rule($"[{Tema.Atual.Borda}]PSI - M3 PROGRAMAÇÃO ESTRUTURADA[/]").RuleStyle(Style.Parse("dim")),
+                        new Text(""),
+                        new Markup($"[italic dim]Escola Secundária Adolfo Portela[/]")
+                    ),
+                    VerticalAlignment.Middle
+                );
+
+        HelpersUI.Render(new List<IRenderable> { panel }, "Saída");
+        Thread.Sleep(3000);
     }
 }
